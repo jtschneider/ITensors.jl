@@ -23,7 +23,8 @@ export ITensor,
        vector,
        scalar,
        store,
-       dense
+       dense,
+       dot
 
 """
 An ITensor is a tensor whose interface is 
