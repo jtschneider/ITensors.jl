@@ -1,6 +1,5 @@
 export dmrg_krylov
 
-using KrylovKit: eigsolve
 
 function dmrg_krylov(H::MPO,
               psi0::MPS,
