@@ -1,5 +1,7 @@
 export davidson
 
+using KrylovKit
+
 function get_vecs!((phi,q),M,V,AV,ni)
   F = eigen(Hermitian(M))
   lambda = F.values[1]
