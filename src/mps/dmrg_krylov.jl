@@ -63,7 +63,7 @@ end
 end
 
 @doc """
-dmrg(H::MPO,psi0::MPS,sweeps::Sweeps;kwargs...)::Tuple{Float64,MPS}
+dmrg_krylov(H::MPO,psi0::MPS,sweeps::Sweeps;kwargs...)::Tuple{Float64,MPS}
 
 Optimize a matrix product state (MPS) to be the eigenvector
 of the Hermitian matrix product operator (MPO) H with minimal
@@ -78,4 +78,4 @@ Inputs:
 Returns:
 * `energy::Float64` - eigenvalue of the optimized MPS
 * `psi::MPS` - optimized MPS
-""" dmrg
+""" dmrg_krylov
