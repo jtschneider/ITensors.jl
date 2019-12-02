@@ -39,7 +39,7 @@ function orthogonalize!(q::ITensor,V,ni)
     qnrm = norm(q)
   end
   scale!(q,1.0/qnrm)
-  return 
+  return
 end
 
 function expand_krylov_space(M::Matrix{elT},V,AV,ni) where {elT}
@@ -76,10 +76,10 @@ function davidson(A,
   approx0 = 1E-12
 
   nrm = norm(phi)
-  if nrm < 1E-18 
+  if nrm < 1E-18
     phi_ = similar(phi)
     randn!(phi_)
-    phi = phi_ 
+    phi = phi_
     nrm = norm(phi)
   end
   scale!(phi,1.0/nrm)
@@ -146,3 +146,34 @@ end
 
 end
 
+
+
+function iterEigSolve_KrylovKit(PH,
+                      phi::ITensor;
+                      kwargs...)::Tuple{Number,ITensor}           # original from Miles Stoudenmire https://github.com/ITensor/ITensors.jl/issues/98#issuecomment-533121965
+
+
+  tol = get(kwargs,:tol,KrylovDefaults.tol)                         # defaults to 1e-12
+  krylovdim::Int = get(kwargs,:krylovdim,KrylovDefaults.krylovdim)  # defaults to 30
+  maxiter::Int = get(kwargs,:maxiter,KrylovDefaults.maxiter)        # defaults to 100
+  ishermitian::Bool = get(kwargs,:ishermitian,true)
+  howmanyeigvals::Int = get(kwargs, :howmanyeigvals, 1)             # this can be alter to improve convergence of the first few eigenvalues
+                                                                    # altough just the ground state energy are returned
+  # actualdim = 1
+  # for i in inds(phi)
+  #  plev(i) == 0 && (actualdim *= dim(i))
+  # end
+  # if krylovdim > actualdim
+  #  @printf "krylovdim=%d > actualdim=%d, resetting" krylovdim actualdim
+  #  krylovdim = actualdim
+  # end
+  #lczos = Lanczos(tol=tol,krylovdim=krylovdim,maxiter=maxiter)
+  #vals, vecs, info = eigsolve(PH,phi,1,:SR,lczos)
+
+  vals, vecs, info = eigsolve(PH,phi,howmanyeigvals,:SR, ishermitian=ishermitian, maxiter=maxiter, tol=tol, krylovdim=krylovdim)
+
+  #@show info.normres[1]
+  #@show info.numops
+  #@show info.numiter
+  return vals[1], vecs[1]
+end
