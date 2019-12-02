@@ -36,7 +36,7 @@ import Base.adjoint,
        Base.*,
        Base./,
        Base.^,
-       Base.setdiff,  # Since setdiff doesn't 
+       Base.setdiff,  # Since setdiff doesn't
                       # work with IndexSet, overload it
        Base.lastindex,
        LinearAlgebra.axpby!,
@@ -92,6 +92,7 @@ include("mps/sweeps.jl")
 include("mps/projmpo.jl")
 include("mps/observer.jl")
 include("mps/dmrg.jl")
+include("mps/dmrg_krylov.jl")
 
 ###########################################################
 # Physics
