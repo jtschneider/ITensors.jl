@@ -11,7 +11,11 @@ export SiteOp,
        toMPO,
        MPOTerm,
        MatElem,
-       SiteOp
+       SiteOp,
+       name,
+       site,
+       ops,
+       coef
 
 import LinearAlgebra.svd
 
