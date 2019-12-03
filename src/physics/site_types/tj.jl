@@ -64,7 +64,7 @@ function op(::tJSite,
     Op[Dn, DnP] = -0.5
   elseif opname == "Sˣ" || opname == "Sx"
     Op[Up, DnP] = 1.0
-    Op[Dn, UpP] = 1.0 
+    Op[Dn, UpP] = 1.0
   elseif opname == "S⁺" || opname == "Splus"
     Op[Dn, UpP] = 1.
   elseif opname == "S⁻" || opname == "Sminus"
@@ -86,4 +86,3 @@ function op(::tJSite,
   end
   return Op
 end
-

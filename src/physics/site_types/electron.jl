@@ -2,7 +2,7 @@ export ElectronSite
 
 const ElectronSite = TagType"Electron"
 
-function siteinds(::ElectronSite, 
+function siteinds(::ElectronSite,
                   N::Int; kwargs...)
   return [Index(4,"Site,Electron,n=$n") for n=1:N]
 end
@@ -79,7 +79,7 @@ function op(::ElectronSite,
     Op[Dn, DnP] = -0.5
   elseif opname == "Sˣ" || opname == "Sx"
     Op[Up, DnP] = 0.5
-    Op[Dn, UpP] = 0.5 
+    Op[Dn, UpP] = 0.5
   elseif opname=="S+" || opname=="Sp" || opname == "S⁺" || opname == "Splus"
     Op[Dn, UpP] = 1.0
   elseif opname=="S-" || opname=="Sm" || opname == "S⁻" || opname == "Sminus"

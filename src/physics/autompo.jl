@@ -235,7 +235,7 @@ function determineValType(terms::Vector{MPOTerm})
   return Float64
 end
 
-function computeSiteProd(sites,
+function computeSiteProd(sites::Vector{Index},
                          ops::OpTerm)::ITensor
   i = ops[1].site
   T = op(sites[i],ops[1].name)
@@ -269,7 +269,7 @@ function remove_dups!(v::Vector{T}) where {T}
 end
 
 function svdMPO(ampo::AutoMPO,
-                sites;
+                sites::Vector{Index};
                 kwargs...)::MPO
 
   mindim::Int = get(kwargs,:mindim,1)

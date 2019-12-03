@@ -6,7 +6,7 @@ export QNVal,
        isactive,
        isfermionic
 
-struct QNVal 
+struct QNVal
   name::SmallString
   val::Int
   modulus::Int
@@ -31,7 +31,7 @@ isfermionic(qv::QNVal) = (modulus(qv) < 0)
 Base.:<(qv1::QNVal,qv2::QNVal) = (name(qv1) < name(qv2))
 Base.:-(qv::QNVal) =  QNVal(name(qv),-val(qv),modulus(qv))
 
-function pm(qv1::QNVal,qv2::QNVal,fac::Int) 
+function pm(qv1::QNVal,qv2::QNVal,fac::Int)
   if name(qv1) != name(qv2)
     error("Cannot add QNVals with different names \"$(name(qv1))\", \"$(name(qv2))\"")
   end

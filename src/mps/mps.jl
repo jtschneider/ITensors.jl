@@ -26,9 +26,9 @@ mutable struct MPS
 
   MPS(N::Int) = MPS(N,Vector{ITensor}(undef,N),0,N+1)
 
-  function MPS(N::Int, 
-               A::Vector{<:ITensor}, 
-               llim::Int=0, 
+  function MPS(N::Int,
+               A::Vector{<:ITensor},
+               llim::Int=0,
                rlim::Int=N+1)
     new(N,A,llim,rlim)
   end
@@ -56,11 +56,11 @@ tensors(m::MPS) = m.A_
 leftlim(m::MPS) = m.llim_
 rightlim(m::MPS) = m.rlim_
 
-function set_leftlim!(m::MPS,new_ll::Int) 
+function set_leftlim!(m::MPS,new_ll::Int)
   m.llim_ = new_ll
 end
 
-function set_rightlim!(m::MPS,new_rl::Int) 
+function set_rightlim!(m::MPS,new_rl::Int)
   m.rlim_ = new_rl
 end
 
@@ -73,7 +73,7 @@ end
 
 getindex(M::MPS, n::Integer) = getindex(tensors(M),n)
 
-function setindex!(M::MPS,T::ITensor,n::Integer) 
+function setindex!(M::MPS,T::ITensor,n::Integer)
   (n <= leftlim(M)) && set_leftlim!(M,n-1)
   (n >= rightlim(M)) && set_rightlim!(M,n+1)
   setindex!(tensors(M),T,n)
@@ -134,7 +134,7 @@ function productMPS(sites,
   return productMPS(ivals)
 end
 
-function linkindex(M::MPS,j::Integer) 
+function linkindex(M::MPS,j::Integer)
   N = length(M)
   j ≥ length(M) && error("No link index to the right of site $j (length of MPS is $N)")
   li = commonindex(M[j],M[j+1])
@@ -204,12 +204,12 @@ end
 """
     sample!(m::MPS)
 
-Given a normalized MPS m, returns a `Vector{Int}` 
-of `length(m)` corresponding to one sample 
-of the probability distribution defined by 
+Given a normalized MPS m, returns a `Vector{Int}`
+of `length(m)` corresponding to one sample
+of the probability distribution defined by
 squaring the components of the tensor
 that the MPS represents. If the MPS does
-not have an orthogonality center, 
+not have an orthogonality center,
 orthogonalize!(m,1) will be called before
 computing the sample.
 """
@@ -224,7 +224,7 @@ end
 Given a normalized MPS m with `orthoCenter(m)==1`,
 returns a `Vector{Int}` of `length(m)`
 corresponding to one sample of the
-probability distribution defined by 
+probability distribution defined by
 squaring the components of the tensor
 that the MPS represents
 """
@@ -279,5 +279,3 @@ inner(psi::MPS, phi::MPS)
 
 Compute <psi|phi>
 """ inner
-
-

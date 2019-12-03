@@ -66,7 +66,7 @@ dmrg(H::MPO,psi0::MPS,sweeps::Sweeps;kwargs...)::Tuple{Float64,MPS}
 
 Optimize a matrix product state (MPS) to be the eigenvector
 of the Hermitian matrix product operator (MPO) H with minimal
-eigenvalue using the density matrix renormalization group 
+eigenvalue using the density matrix renormalization group
 (DMRG) algorithm.
 
 Inputs:

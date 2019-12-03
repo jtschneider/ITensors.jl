@@ -110,7 +110,7 @@ function _factorize_from_left_svd(A::ITensor,
 end
 
 function _factorize_from_right_svd(A::ITensor,
-                                   Linds...; 
+                                   Linds...;
                                    kwargs...)
   tags::TagSet = get(kwargs,:tags,"Link,u")
   U,S,V = svd(A,Linds...;kwargs...)
@@ -121,7 +121,7 @@ function _factorize_from_right_svd(A::ITensor,
 end
 
 function _factorize_from_left_eigen(A::ITensor,
-                                    Linds...; 
+                                    Linds...;
                                     kwargs...)
   Lis = commoninds(inds(A),IndexSet(Linds...))
   A² = A*prime(dag(A),Lis)
@@ -132,7 +132,7 @@ function _factorize_from_left_eigen(A::ITensor,
 end
 
 function _factorize_from_right_eigen(A::ITensor,
-                                     Linds...; 
+                                     Linds...;
                                      kwargs...)
   Ris = uniqueinds(inds(A),IndexSet(Linds...))
   A² = A*prime(dag(A),Ris)
@@ -217,4 +217,3 @@ function eigen(A::ITensor,
   D *= δ(v,u')
   return U,D,u
 end
-

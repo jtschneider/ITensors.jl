@@ -116,14 +116,13 @@ function makeR!(pm::ProjMPO,
 end
 
 function position!(pm::ProjMPO,
-                   psi::MPS, 
+                   psi::MPS,
                    pos::Int)
   makeL!(pm,psi,pos-1)
   makeR!(pm,psi,pos+nsite(pm))
 
-  #These next two lines are needed 
+  #These next two lines are needed
   #when moving lproj and rproj backward
   pm.lpos = pos-1
   pm.rpos = pos+nsite(pm)
 end
-
