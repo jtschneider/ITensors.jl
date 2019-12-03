@@ -2,7 +2,7 @@ export AbstractObserver,
        measure!,
        checkdone!,
        NoObserver,
-       DMRGObserver, 
+       DMRGObserver,
        measurements,
        energies
 
@@ -25,12 +25,12 @@ struct DMRGObserver <: AbstractObserver
   etol::Float64
   minsweeps::Int64
 
-  function DMRGObserver(etol::Real=0, 
-                        minsweeps::Int=2) 
+  function DMRGObserver(etol::Real=0,
+                        minsweeps::Int=2)
     new([],[],Dict{String,DMRGMeasurement}(),[],etol,minsweeps)
   end
 
-  function DMRGObserver(ops::Vector{String}, 
+  function DMRGObserver(ops::Vector{String},
                         sites::Vector{Index},
                         etol::Real=0,
                         minsweeps::Int=2)
@@ -61,7 +61,7 @@ function measure!(obs::DMRGObserver;
   energy = kwargs[:energy]
   psi = kwargs[:psi]
 
-  if half_sweep==2 
+  if half_sweep==2
     N = length(psi)
 
     if b==N-1
@@ -70,7 +70,7 @@ function measure!(obs::DMRGObserver;
       end
     end
 
-    # when sweeping left the orthogonality center is located 
+    # when sweeping left the orthogonality center is located
     # at site n=b after the bond update.
     # We want to measure at n=b+1 because there the tensor has been
     # already fully updated (by the right and left pass of the sweep).
@@ -93,4 +93,3 @@ function checkdone!(o::DMRGObserver; kwargs...)
   end
   return false
 end
-
