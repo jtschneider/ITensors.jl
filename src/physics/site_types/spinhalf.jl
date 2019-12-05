@@ -41,8 +41,8 @@ function op(::SpinHalfSite,
      Op[Dn, UpP] = 0.5
   elseif opname == "Sʸ" || opname == "Sy"
      Op = complex(Op)
-     Op[Up, DnP] = 0.5*im
-     Op[Dn, UpP] = -0.5*im
+     Op[Up, DnP] = -0.5*im
+     Op[Dn, UpP] = 0.5*im
   elseif opname == "Sᶻ" || opname == "Sz"
      Op[Up, UpP] = 0.5
      Op[Dn, DnP] = -0.5
