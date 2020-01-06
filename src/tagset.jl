@@ -15,7 +15,7 @@ struct TagSet
   tags::TagSetStorage
   plev::Int
   length::Int
-  function TagSet() 
+  function TagSet()
     ts = TagSetStorage(ntuple(_ -> IntTag(0),Val(4)))
     plev = -1
     new(ts,plev,0)
@@ -67,7 +67,7 @@ function _addtag!(ts::MTagSetStorage, plev::Int, ntags::Int, tag::IntTag)
       #plev ≥ 0 && error("You can only make a TagSet with one prime level/integer tag.")
       #plnew = parse(Int,t)
     else
-      ntags = _addtag_ordered!(ts, ntags,tag)  
+      ntags = _addtag_ordered!(ts, ntags,tag)
     end
   end
   return plnew, ntags

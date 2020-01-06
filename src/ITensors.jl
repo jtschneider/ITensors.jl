@@ -43,6 +43,7 @@ include("mps/sweeps.jl")
 include("mps/projmpo.jl")
 include("mps/observer.jl")
 include("mps/dmrg.jl")
+include("mps/dmrg_krylov.jl")
 
 ###########################################################
 # Physics

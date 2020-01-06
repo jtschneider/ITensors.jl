@@ -26,8 +26,9 @@ function op(::SpinHalfSite,
   UpP = sP(1)
   Dn = s(2)
   DnP = sP(2)
- 
+
   Op = ITensor(s',dag(s))
+
 
   if opname == "S⁺" || opname == "Splus" || opname == "S+"
     Op[UpP, Dn] = 1.
@@ -40,7 +41,7 @@ function op(::SpinHalfSite,
      Op[UpP, Dn] = 0.5
      Op[DnP, Up] = -0.5
   elseif opname == "Sʸ" || opname == "Sy"
-     Op = complex(Op) 
+     Op = complex(Op)
      Op[UpP, Dn] = -0.5*im
      Op[DnP, Up] = 0.5*im
   elseif opname == "Sᶻ" || opname == "Sz"

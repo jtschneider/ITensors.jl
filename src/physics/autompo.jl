@@ -1,7 +1,7 @@
 #
 # Optimizations:
 #  - replace leftmap, rightmap with sorted vectors
-# 
+#
 
 export SiteOp,
        MPOTerm,
@@ -11,10 +11,14 @@ export SiteOp,
        toMPO,
        MPOTerm,
        MatElem,
-       SiteOp
+       SiteOp,
+       name,
+       site,
+       ops,
+       coef
 
 ###########################
-# SiteOp                  # 
+# SiteOp                  #
 ###########################
 
 struct SiteOp
@@ -33,14 +37,14 @@ function Base.isless(s1::SiteOp,s2::SiteOp)::Bool
 end
 
 ###########################
-# OpTerm                  # 
+# OpTerm                  #
 ###########################
 
 const OpTerm = Vector{SiteOp}
 mult(t1::OpTerm,t2::OpTerm) = isempty(t2) ? t1 : vcat(t1,t2)
 
 ###########################
-# MPOTerm                 # 
+# MPOTerm                 #
 ###########################
 
 struct MPOTerm
@@ -66,7 +70,7 @@ end
 
 function MPOTerm(c::Number,
                  op1::String,
-                 i1::Int) 
+                 i1::Int)
   return MPOTerm(convert(ComplexF64,c),[SiteOp(op1,i1)])
 end
 
@@ -95,7 +99,7 @@ end
 #end
 
 function Base.show(io::IO,
-                   op::MPOTerm) 
+                   op::MPOTerm)
   c = coef(op)
   if c != 1.0+0.0im
     if imag(c) == 0.0
@@ -168,7 +172,7 @@ end
 
 
 function Base.show(io::IO,
-                   ampo::AutoMPO) 
+                   ampo::AutoMPO)
   println(io,"AutoMPO:")
   for term in terms(ampo)
     println(io,"  $term")
@@ -233,7 +237,7 @@ function determineValType(terms::Vector{MPOTerm})
   return Float64
 end
 
-function computeSiteProd(sites,
+function computeSiteProd(sites::Vector{Index},
                          ops::OpTerm)::ITensor
   i = ops[1].site
   T = op(sites[i],ops[1].name)
@@ -253,7 +257,7 @@ function remove_dups!(v::Vector{T}) where {T}
   n = 1
   u = 2
   while u <= N
-    while u < N && v[u]==v[n] 
+    while u < N && v[u]==v[n]
       u += 1
     end
     if v[u] != v[n]
@@ -267,7 +271,7 @@ function remove_dups!(v::Vector{T}) where {T}
 end
 
 function svdMPO(ampo::AutoMPO,
-                sites; 
+                sites::Vector{Index};
                 kwargs...)::MPO
 
   mindim::Int = get(kwargs,:mindim,1)
@@ -285,7 +289,7 @@ function svdMPO(ampo::AutoMPO,
 
   rightmap = OpTerm[]
   next_rightmap = OpTerm[]
-  
+
   for n=1:N
 
     leftbond_coefs = MatElem{ValType}[]

@@ -256,4 +256,3 @@ function LinearAlgebra.eigen(A::ITensor,
   D *= δ(v,u')
   return U,D,u
 end
-

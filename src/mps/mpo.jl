@@ -36,7 +36,7 @@ mutable struct MPO
     end
     new(N,v,0,N+1)
   end
- 
+
 end
 
 MPO(N::Int) = MPO(N,Vector{ITensor}(undef,N))
@@ -344,7 +344,7 @@ function densityMatrixApplyMPO(A::MPO, psi::MPS; kwargs...)::MPS
 
     maxdim::Int     = get(kwargs,:maxdim,maxlinkdim(psi))
     mindim::Int     = max(get(kwargs,:mindim,1), 1)
-    normalize::Bool = get(kwargs, :normalize, false) 
+    normalize::Bool = get(kwargs, :normalize, false)
     all(x -> x != Index(), [siteindex(A, psi, j) for j in 1:n]) || throw(ErrorException("MPS and MPO have different site indices in applyMPO method 'DensityMatrix'"))
 
     rand_plev = 14741
@@ -367,8 +367,8 @@ function densityMatrixApplyMPO(A::MPO, psi::MPS; kwargs...)::MPS
     ts    = tags(commonindex(psi[n], psi[n-1]))
     Lis   = commonindex(ρ, A[n])
     Ris   = uniqueinds(ρ, Lis)
-    FU, D = eigenHermitian(ρ, Lis, Ris; ispossemidef=true, 
-                                        tags=ts, 
+    FU, D = eigenHermitian(ρ, Lis, Ris; ispossemidef=true,
+                                        tags=ts,
                                         kwargs...)
     psi_out[n] = setprime(dag(FU), 0, "Site")
     O     = O * FU * psi[n-1] * A[n-1]
@@ -377,10 +377,10 @@ function densityMatrixApplyMPO(A::MPO, psi::MPS; kwargs...)::MPS
         dO  = prime(dag(O), rand_plev)
         ρ   = E[j-1] * O * dO
         ts  = tags(commonindex(psi[j], psi[j-1]))
-        Lis = IndexSet(commonindex(ρ, A[j]), commonindex(ρ, psi_out[j+1])) 
+        Lis = IndexSet(commonindex(ρ, A[j]), commonindex(ρ, psi_out[j+1]))
         Ris = uniqueinds(ρ, Lis)
         FU, D = eigenHermitian(ρ, Lis, Ris; ispossemidef=true,
-                                            tags=ts, 
+                                            tags=ts,
                                             kwargs...)
         psi_out[j] = dag(FU)
         O = O * FU * psi[j-1] * A[j-1]
@@ -397,7 +397,7 @@ end
 
 function naiveApplyMPO(A::MPO, psi::MPS; kwargs...)::MPS
   N = length(A)
-  if N != length(psi) 
+  if N != length(psi)
     throw(DimensionMismatch("lengths of MPO ($N) and MPS ($(length(psi))) do not match"))
   end
 

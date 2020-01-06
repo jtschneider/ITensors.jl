@@ -27,12 +27,12 @@ struct DMRGObserver <: AbstractObserver
   etol::Float64
   minsweeps::Int64
 
-  function DMRGObserver(etol::Real=0, 
-                        minsweeps::Int=2) 
+  function DMRGObserver(etol::Real=0,
+                        minsweeps::Int=2)
     new([],[],Dict{String,DMRGMeasurement}(),[],[],etol,minsweeps)
   end
 
-  function DMRGObserver(ops::Vector{String}, 
+  function DMRGObserver(ops::Vector{String},
                         sites::Vector{Index},
                         etol::Real=0,
                         minsweeps::Int=2)
@@ -99,4 +99,3 @@ function checkdone!(o::DMRGObserver; kwargs...)
   end
   return false
 end
-

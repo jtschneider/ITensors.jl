@@ -140,7 +140,7 @@ Tensors.tuplecat(is1::IndexSet{N1},
                  is2::IndexSet{N2}) where {N1,N2} = IndexSet{N1+N2}(is1...,is2...)
 
 # This is to help with some generic programming in the Tensor
-# code (it helps to construct an IndexSet(::NTuple{N,Index}) where the 
+# code (it helps to construct an IndexSet(::NTuple{N,Index}) where the
 # only known thing for dispatch is a concrete type such
 # as IndexSet{4})
 StaticArrays.similar_type(::Type{<:IndexSet},::Val{N}) where {N} = IndexSet{N}
@@ -180,7 +180,7 @@ function maxdim(is::IndexSet)
   return md
 end
 
-# 
+#
 # Set operations
 #
 
@@ -260,7 +260,7 @@ uniqueindex(Ais,Bis)
 Output the Index in Ais but not in the IndexSets Bis.
 Otherwise, return a default constructed Index.
 
-In the future, this may throw an error if more than 
+In the future, this may throw an error if more than
 one Index is found.
 """
 function uniqueindex(Ainds,Binds)
@@ -272,7 +272,7 @@ function uniqueindex(Ainds,Binds)
 end
 # This version can check for repeats, but is a bit
 # slower because of IndexSet allocation
-#uniqueindex(Ais,Bis) = Index(uniqueinds(Ais,Bis)) 
+#uniqueindex(Ais,Bis) = Index(uniqueinds(Ais,Bis))
 
 Base.setdiff(Ais::IndexSet,Bis) = uniqueinds(Ais,Bis)
 
@@ -417,10 +417,10 @@ setprime(is::IndexSet, vargs...) = setprime!(copy(is), vargs...)
 noprime!(is::IndexSet, match = nothing) = setprime!(is, 0, match)
 noprime(is::IndexSet, vargs...) = noprime!(copy(is), vargs...)
 
-function swapprime!(is::IndexSet, 
+function swapprime!(is::IndexSet,
                     pl1::Int,
                     pl2::Int,
-                    vargs...) 
+                    vargs...)
   pos = indexpositions(is,vargs...)
   for n in pos
     if plev(is[n])==pl1
@@ -440,7 +440,7 @@ function mapprime!(is::IndexSet,
                    match = nothing)
   pos = indexpositions(is,match)
   for n in pos
-    if plev(is[n])==plold 
+    if plev(is[n])==plold
       is[n] = setprime(is[n],plnew)
     end
   end
@@ -563,4 +563,3 @@ function readcpp(io::IO,::Type{IndexSet};kwargs...)
   end
   return is
 end
-
