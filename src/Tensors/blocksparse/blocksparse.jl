@@ -53,7 +53,9 @@ BlockSparse(::UndefInitializer,
 
 blockoffsets(D::BlockSparse) = D.blockoffsets
 nnzblocks(D::BlockSparse) = length(blockoffsets(D))
-nnz(D::BlockSparse) = length(data(D))
+Base.length(D::BlockSparse) = length(data(D))
+Base.size(D::BlockSparse) = (length(D),)
+nnz(D::BlockSparse) = length(D)
 offset(D::BlockSparse,block::Block) = offset(blockoffsets(D),block)
 offset(D::BlockSparse,n::Int) = offset(blockoffsets(D),n)
 
@@ -62,10 +64,10 @@ function Base.similar(D::BlockSparse{ElT}) where {ElT}
 end
 
 Base.similar(D::BlockSparse,
-             ::Type{ElT}) where {ElT} = BlockSparse{T}(similar(data(D),T),
-                                                       blockoffsets(D))
-Base.copy(D::BlockSparse{T}) where {T} = BlockSparse{T}(copy(data(D)),
-                                                        blockoffsets(D))
+             ::Type{ElT}) where {ElT} = BlockSparse(similar(data(D),ElT),
+                                                    copy(blockoffsets(D)))
+Base.copy(D::BlockSparse) = BlockSparse(copy(data(D)),
+                                        copy(blockoffsets(D)))
 
 # TODO: check the offsets are the same?
 function Base.copyto!(D1::BlockSparse,D2::BlockSparse)
