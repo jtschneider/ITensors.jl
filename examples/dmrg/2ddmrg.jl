@@ -6,9 +6,9 @@ let
 
   N = Nx*Ny
 
-  sites = spinHalfSites(N;conserveQNs=false)
+  sites = siteinds("S=1/2",N)
 
-  lattice = squareLattice(Nx,Ny,yperiodic=false)
+  lattice = square_lattice(Nx,Ny,yperiodic=false)
 
   ampo = AutoMPO()
   for b in lattice
