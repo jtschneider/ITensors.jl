@@ -1,4 +1,6 @@
 export ITensor,
+       itensor,
+       axpy!,
        combiner,
        combinedindex,
        delta,
@@ -9,16 +11,21 @@ export ITensor,
        isnull,
        scale!,
        matmul,
+       mul!,
        order,
        permute,
        randomITensor,
+       rmul!,
        diagITensor,
+       dot,
        tensor,
        array,
        matrix,
        vector,
        norm,
+       normalize!,
        scalar,
+       set_warnorder,
        store,
        dense,
        real_if_close
@@ -49,11 +56,26 @@ setinds!(T::ITensor,is...) = (T.inds = IndexSet(is...))
 setstore!(T::ITensor,st::TensorStorage) = (T.store = st)
 
 #
-# Dense ITensor constructors
+# Iteration over ITensors
 #
+
+"""
+    CartesianIndices(A::ITensor)
+
+Iterate over the CartesianIndices of an ITensor.
+"""
+Base.CartesianIndices(A::ITensor) = CartesianIndices(dims(A))
+
+#
+# ITensor constructors
+#
+
+# Should this be ITensor or itensor?
 
 ITensor(T::Tensor{<:Number,N}) where {N} = ITensor{N}(store(T),inds(T))
 ITensor{N}(T::Tensor{<:Number,N}) where {N} = ITensor{N}(store(T),inds(T))
+
+itensor(T::Tensor{<:Number,N}) where {N} = ITensor{N}(store(T),inds(T))
 
 # Convert the ITensor to a Tensor that shares the same
 # data and indices as the ITensor
@@ -245,7 +267,7 @@ Base.complex(T::ITensor) = ITensor(complex(Tensor(store(T),inds(T))))
 # set operations to work with ITensors
 IndexSet(T::ITensor) = inds(T)
 
-Base.eltype(T::ITensor) = eltype(store(T))
+Base.eltype(T::ITensor) = eltype(tensor(T))
 
 """
     order(A::ITensor) = ndims(A)
@@ -276,17 +298,28 @@ isnull(T::ITensor) = (eltype(T) === Nothing)
 
 Base.copy(T::ITensor{N}) where {N} = ITensor{N}(copy(tensor(T)))
 
-# TODO: make versions where the element type can be specified
-# Should this be called `array`? (Version that makes a view, if dense)
-Tensors.array(T::ITensor) = array(tensor(T))
+"""
+    Array{ElT}(T::ITensor, i:Index...)
 
-function Tensors.array(T::ITensor{N},is::Vararg{Index,N}) where {N}
-  perm = getperm(inds(T),is)
-  return array(permutedims(tensor(T),perm))
+Given an ITensor `T` with indices `i...`, returns
+an Array with a copy of the ITensor's elements. The
+order in which the indices are provided indicates
+the order of the data in the resulting Array.
+"""
+function Base.Array{ElT,N}(T::ITensor{N},is::Vararg{Index,N}) where {ElT,N}
+  return Array{ElT,N}(tensor(permute(T,is...)))::Array{ElT,N}
+end
+
+function Base.Array{ElT}(T::ITensor{N},is::Vararg{Index,N}) where {ElT,N}
+  return Array{ElT,N}(T,is...)
+end
+
+function Base.Array(T::ITensor{N},is::Vararg{Index,N}) where {N}
+  return Array{eltype(T),N}(T,is...)::Array{<:Number,N}
 end
 
 """
-    matrix(T::ITensor, row_i:Index, col_i::Index)
+    Matrix(T::ITensor, row_i:Index, col_i::Index)
 
 Given an ITensor `T` with two indices `row_i` and `col_i`, returns
 a Matrix with a copy of the ITensor's elements. The
@@ -294,34 +327,30 @@ order in which the indices are provided indicates
 which Index is to be treated as the row index of the 
 Matrix versus the column index.
 
-    matrix(T::ITensor)
-
-Given an ITensor `T` with two indices, returns
-a Matrix with a copy of the ITensor's elements. 
-The ordering of the elements in the Matrix, in
-terms of which Index is treated as the row versus
-column, depends on the internal layout of the ITensor.
-*Therefore this method is intended for developer use
-only and not recommend for use in ITensor applications.*
 """
-function Tensors.matrix(T::ITensor{N},row_i::Index,col_i::Index) where {N}
-  N≠2 && throw(DimensionMismatch("ITensor must be order 2 to convert to a Matrix"))
-  return array(T,row_i,col_i)
+function Base.Matrix(T::ITensor{2},row_i::Index,col_i::Index)
+  return Array(T,row_i,col_i)
 end
 
-function Tensors.matrix(T::ITensor{N}) where {N}
-  N!=2 && throw(DimensionMismatch("ITensor must be order 2 to convert to a Matrix"))
-  return array(tensor(T))
+function Base.Vector(T::ITensor{1},i::Index)
+  return Array(T,i)
 end
 
-function Tensors.vector(T::ITensor{N}) where {N}
-  N!=1 && throw(DimensionMismatch("ITensor must be order 1 to convert to a Vector"))
-  return array(tensor(T))
+function Base.Vector{ElT}(T::ITensor{1}) where {ElT}
+  return Vector{ElT}(T,inds(T)...)
 end
 
-scalar(T::ITensor) = T[]
+function Base.Vector(T::ITensor{1})
+  return Vector(T,inds(T)...)
+end
+
+scalar(T::ITensor) = T[]::Number
 
 Base.getindex(T::ITensor{N},vals::Vararg{Int,N}) where {N} = tensor(T)[vals...]::Number
+
+# Version accepting CartesianIndex, useful when iterating over
+# CartesianIndices
+Base.getindex(T::ITensor{N},I::CartesianIndex{N}) where {N} = tensor(T)[I]::Number
 
 function Base.getindex(T::ITensor{N},
                        ivs::Vararg{IndexVal,N}) where {N}
@@ -347,17 +376,6 @@ function Base.setindex!(T::ITensor,x::Number,ivs::IndexVal...)
   vals = permute(val.(ivs),p)
   return T[vals...] = x
 end
-
-# TODO: what was this doing?
-#function setindex!(T::ITensor,
-#                   x::Union{<:Number, AbstractArray{<:Number}},
-#                   ivs::Union{IndexVal, AbstractVector{IndexVal}}...)
-#  remap_ivs = map(x->x isa IndexVal ? x : x[1], ivs)
-#  p = getperm(inds(T),remap_ivs)
-#  vals = map(x->x isa IndexVal ? val(x) : val.(x), ivs[p])
-#  storage_setindex!(store(T),inds(T),x,vals...)
-#  return T
-#end
 
 function Base.fill!(T::ITensor,
                     x::Number)
@@ -476,10 +494,10 @@ function dag(T::ITensor)
   return ITensor(store(TT),dag(inds(T)))
 end
 
-function Tensors.permute(T::ITensor,new_inds)
+function Tensors.permute(T::ITensor{N},new_inds) where {N}
   perm = getperm(new_inds,inds(T))
   Tp = permutedims(tensor(T),perm)
-  return ITensor(Tp)
+  return ITensor(Tp)::ITensor{N}
 end
 Tensors.permute(T::ITensor,inds::Index...) = permute(T,IndexSet(inds...))
 
@@ -502,10 +520,22 @@ function Base.:-(A::ITensor,B::ITensor)
   return C
 end
 
+"""
+    *(A::ITensor, B::ITensor)
+
+Contract ITensors A and B to obtain a new ITensor. This 
+contraction `*` operator finds all matching indices common
+to A and B and sums over them, such that the result will 
+have only the unique indices of A and B. To prevent
+indices from matching, their prime level or tags can be 
+modified such that they no longer compare equal - for more
+information see the documentation on Index objects.
+"""
 function Base.:*(A::ITensor,B::ITensor)
   (Alabels,Blabels) = compute_contraction_labels(inds(A),inds(B))
   CT = contract(tensor(A),Alabels,tensor(B),Blabels)
   C = ITensor(CT)
+  warnTensorOrder = GLOBAL_PARAMS["WarnTensorOrder"]
   if warnTensorOrder > 0 && order(C) >= warnTensorOrder
     println("Warning: contraction resulted in ITensor with $(order(C)) indices")
   end
@@ -521,7 +551,7 @@ Compute the exponential of the tensor `A` by treating it as a matrix ``A_{lr}`` 
 the left index `l` running over all indices in `Lis` and `r` running over all
 indices not in `Lis`. Must have `dim(Lis) == dim(inds(A))/dim(Lis)` for the exponentiation to
 be defined.
-When `hermitian=true` the exponential of `Hermitian(reshape(A, dim(Lis), :))` is
+When `ishermitian=true` the exponential of `Hermitian(A_{lr})` is
 computed internally.
 """
 function LinearAlgebra.exp(A::ITensor,
@@ -538,6 +568,13 @@ function exphermitian(A::ITensor,
                       Linds,
                       Rinds = prime(IndexSet(Linds))) 
   return exp(A,Linds,Rinds;ishermitian=true)
+end
+
+function matmul(A::ITensor,
+                B::ITensor)
+  R = mapprime(mapprime(A,1,2),0,1)
+  R *= B
+  return mapprime(R,2,1)
 end
 
 #######################################################################
@@ -619,7 +656,7 @@ LinearAlgebra.axpy!(a::Number,v::ITensor,w::ITensor) = add!(w,a,v)
 #"""
 #w .= a .* v + b .* w
 #"""
-#LinearAlgebra.axpby!(a::Number,v::ITensor,b::Number,w::ITensor) = add!(w,b,w,a,v)
+#LinearAlgebra.axpby!(a::Number,v::ITensor,b::Number,w::ITensor) = add!(w,b,a,v)
 
 """
     scale!(A::ITensor,x::Number) = rmul!(A,x)
@@ -644,6 +681,40 @@ Like `A .= x .* B`.
 """
 LinearAlgebra.mul!(R::ITensor,α::Number,T::ITensor) = apply!(R,T,(r,t)->α*t )
 LinearAlgebra.mul!(R::ITensor,T::ITensor,α::Number) = mul!(R,α,T)
+
+#######################################################################
+#
+# Developer functions
+#
+
+# TODO: make versions where the element type can be specified (for type
+# inference).
+Tensors.array(T::ITensor) = array(tensor(T))
+
+"""
+    matrix(T::ITensor)
+
+Given an ITensor `T` with two indices, returns
+a Matrix with a copy of the ITensor's elements,
+or a view in the case the the ITensor's storage is Dense.
+The ordering of the elements in the Matrix, in
+terms of which Index is treated as the row versus
+column, depends on the internal layout of the ITensor.
+*Therefore this method is intended for developer use
+only and not recommended for use in ITensor applications.*
+"""
+function Tensors.matrix(T::ITensor{2})
+  return array(tensor(T))
+end
+
+function Tensors.vector(T::ITensor{1})
+  return array(tensor(T))
+end
+
+#######################################################################
+#
+# Printing, reading and writing ITensors
+#
 
 function Base.summary(io::IO,
                       T::ITensor)
@@ -673,13 +744,6 @@ end
 function Base.similar(T::ITensor,
                       element_type=eltype(T))
   return ITensor(similar(tensor(T),element_type))
-end
-
-function matmul(A::ITensor,
-                B::ITensor)
-  R = mapprime(mapprime(A,1,2),0,1)
-  R *= B
-  return mapprime(R,2,1)
 end
 
 function readcpp(io::IO,::Type{Dense{ValT}};kwargs...) where {ValT}
@@ -726,4 +790,48 @@ function readcpp(io::IO,::Type{ITensor};kwargs...)
   else
     throw(ArgumentError("read ITensor: format=$format not supported"))
   end
+end
+
+function set_warnorder(ord::Int)
+  ITensors.GLOBAL_PARAMS["WarnTensorOrder"] = ord
+end
+
+function HDF5.write(parent::Union{HDF5File,HDF5Group},
+                    name::AbstractString,
+                    T::ITensor)
+  g = g_create(parent,name)
+  attrs(g)["type"] = "ITensor"
+  attrs(g)["version"] = 1
+  write(g,"inds",inds(T))
+  write(g,"store",store(T))
+end
+
+#function HDF5.read(parent::Union{HDF5File,HDF5Group},
+#                   name::AbstractString)
+#  g = g_open(parent,name)
+#
+#  try
+#    typestr = read(attrs(g)["type"])
+#    type_t = eval(Meta.parse(typestr))
+#    res = read(parent,"name",type_t)
+#    return res
+#  end
+#  return 
+#end
+
+function HDF5.read(parent::Union{HDF5File,HDF5Group},
+                   name::AbstractString,
+                   ::Type{ITensor})
+  g = g_open(parent,name)
+  if read(attrs(g)["type"]) != "ITensor"
+    error("HDF5 group or file does not contain ITensor data")
+  end
+  inds = read(g,"inds",IndexSet)
+
+  stypestr = read(attrs(g_open(g,"store"))["type"])
+  stype = eval(Meta.parse(stypestr))
+
+  store = read(g,"store",stype)
+
+  return ITensor(store,inds)
 end
