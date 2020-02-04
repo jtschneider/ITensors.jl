@@ -1,7 +1,7 @@
-export dmrg
+export dmrg_krylov
 
 
-function dmrg(H::MPO,
+function dmrg_krylov(H::MPO,
               psi0::MPS,
               sweeps::Sweeps;
               kwargs...)::Tuple{Float64,MPS}
@@ -30,28 +30,27 @@ end
       phi = psi[b]*psi[b+1]
 end
 
-@timeit_debug GLOBAL_TIMER "davidson" begin
-      energy,phi = davidson(PH,phi;kwargs...)
+@timeit_debug GLOBAL_TIMER "Krylov" begin
+      energy, phi = iterEigSolve_KrylovKit(PH, phi; kwargs...)
 end
 
       dir = ha==1 ? "fromleft" : "fromright"
 
 @timeit_debug GLOBAL_TIMER "replacebond!" begin
-      spec = replacebond!(psi,b,phi;
-                          maxdim=maxdim(sweeps,sw),
-                          mindim=mindim(sweeps,sw),
-                          cutoff=cutoff(sweeps,sw),
-                          dir=dir,
-                          which_factorization=which_factorization)
+      replacebond!(psi,b,phi;
+                   maxdim=maxdim(sweeps,sw),
+                   mindim=mindim(sweeps,sw),
+                   cutoff=cutoff(sweeps,sw),
+                   dir=dir,
+                   which_factorization=which_factorization)
 end
 
       measure!(obs;energy=energy,
-               psi=psi,
-               bond=b,
-               sweep=sw,
-               half_sweep=ha,
-               spec = spec,
-               quiet=quiet)
+                   psi=psi,
+                   bond=b,
+                   sweep=sw,
+                   half_sweep=ha,
+                   quiet=quiet)
     end
     end
     if !quiet
@@ -63,7 +62,7 @@ end
 end
 
 @doc """
-dmrg(H::MPO,psi0::MPS,sweeps::Sweeps;kwargs...)::Tuple{Float64,MPS}
+dmrg_krylov(H::MPO,psi0::MPS,sweeps::Sweeps;kwargs...)::Tuple{Float64,MPS}
 
 Optimize a matrix product state (MPS) to be the eigenvector
 of the Hermitian matrix product operator (MPO) H with minimal
@@ -78,4 +77,4 @@ Inputs:
 Returns:
 * `energy::Float64` - eigenvalue of the optimized MPS
 * `psi::MPS` - optimized MPS
-""" dmrg
+""" dmrg_krylov

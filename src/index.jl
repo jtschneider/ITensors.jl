@@ -23,14 +23,34 @@ export Index,
 const IDType = UInt64
 
 """
+<<<<<<< HEAD
 An `Index` represents a single tensor index with fixed dimension `dim`. Copies of an Index compare equal unless their 
+=======
+   Arrow
+`enum` type that can take three values: `In`, `Out`, or `Neither`, representing a directionality
+associated with an index, i.e. the index leg is directed into or out of a given tensor
+"""
+@enum Arrow In=-1 Out=1 Neither=0
+
+"""
+    -(dir::Arrow)
+Reverse direction of a directed `Arrow`.
+"""
+function Base.:-(dir::Arrow)
+  dir==Neither && return Neither #throw(ArgumentError("Cannot reverse direction of Arrow direction 'Neither'"))
+  return dir==In ? Out : In
+end
+
+"""
+An `Index` represents a single tensor index with fixed dimension `dim`. Copies of an Index compare equal unless their
+>>>>>>> 864a3a0998e3fa5689c65b8fcbbfd92d0663d949
 `tags` are different.
 
-An Index carries a `TagSet`, a set of tags which are small strings that specify properties of the `Index` to help 
-distinguish it from other Indices. There is a special tag which is referred to as the integer tag or prime 
+An Index carries a `TagSet`, a set of tags which are small strings that specify properties of the `Index` to help
+distinguish it from other Indices. There is a special tag which is referred to as the integer tag or prime
 level which can be incremented or decremented with special priming functions.
 
-Internally, an `Index` has a fixed `id` number, which is how the ITensor library knows two indices are copies of a 
+Internally, an `Index` has a fixed `id` number, which is how the ITensor library knows two indices are copies of a
 single original `Index`. `Index` objects must have the same `id`, as well as the `tags` to compare equal.
 """
 struct Index{T}
@@ -138,7 +158,7 @@ isdefault(i::Index) = (i==Index())
 """
     hastags(i::Index,ts)
 Check if an `Index` `i` has the provided tags,
-which can be a string of comma-separated tags or 
+which can be a string of comma-separated tags or
 a TagSet object
 
 Example:
@@ -152,7 +172,7 @@ hastags(i::Index, ts) = hastags(tags(i),ts)
     settags(i::Index,ts)
 Return a copy of Index `i` with
 tags replaced by the ones given
-The `ts` argument can be a comma-separated 
+The `ts` argument can be a comma-separated
 string of tags or a TagSet.
 
 Example:
@@ -173,7 +193,7 @@ end
     addtags(i::Index,ts)
 Return a copy of Index `i` with the
 specified tags added to the existing ones.
-The `ts` argument can be a comma-separated 
+The `ts` argument can be a comma-separated
 string of tags or a TagSet.
 """
 addtags(i::Index, ts) = settags(i, addtags(tags(i), ts))
@@ -229,7 +249,7 @@ function Base.iterate(i::Index,state::Int=1)
 end
 
 function Base.show(io::IO,
-                   i::Index) 
+                   i::Index)
   idstr = "$(id(i) % 1000)"
   if length(tags(i)) > 0
     print(io,"(dim=$(space(i))|id=$(idstr)|$(tagstring(tags(i))))$(primestring(tags(i)))")

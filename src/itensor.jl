@@ -31,7 +31,7 @@ export ITensor,
        real_if_close
 
 """
-An ITensor is a tensor whose interface is 
+An ITensor is a tensor whose interface is
 independent of its memory layout. Therefore
 it is not necessary to know the ordering
 of an ITensor's indices, only which indices
@@ -134,7 +134,7 @@ ITensor(A::Array{S},inds::Index...) where {S<:Number} = ITensor(A,IndexSet(inds.
 """
 diagITensor(::Type{T}, is::IndexSet)
 
-Make a sparse ITensor of element type T with non-zero elements 
+Make a sparse ITensor of element type T with non-zero elements
 only along the diagonal. Defaults to having `zero(T)` along the diagonal.
 The storage will have Diag type.
 """
@@ -146,7 +146,7 @@ end
 """
 diagITensor(::Type{T}, is::Index...)
 
-Make a sparse ITensor of element type T with non-zero elements 
+Make a sparse ITensor of element type T with non-zero elements
 only along the diagonal. Defaults to having `zero(T)` along the diagonal.
 The storage will have Diag type.
 """
@@ -155,8 +155,8 @@ diagITensor(::Type{T},inds::Index...) where {T<:Number} = diagITensor(T,IndexSet
 """
 diagITensor(v::Vector{T}, is::IndexSet)
 
-Make a sparse ITensor with non-zero elements only along the diagonal. 
-The diagonal elements will be set to the values stored in `v` and 
+Make a sparse ITensor with non-zero elements only along the diagonal.
+The diagonal elements will be set to the values stored in `v` and
 the ITensor will have element type `float(T)`.
 The storage will have Diag type.
 """
@@ -169,8 +169,8 @@ end
 """
 diagITensor(v::Vector{T}, is::Index...)
 
-Make a sparse ITensor with non-zero elements only along the diagonal. 
-The diagonal elements will be set to the values stored in `v` and 
+Make a sparse ITensor with non-zero elements only along the diagonal.
+The diagonal elements will be set to the values stored in `v` and
 the ITensor will have element type `float(T)`.
 The storage will have Diag type.
 """
@@ -182,7 +182,7 @@ end
 """
 diagITensor(is::IndexSet)
 
-Make a sparse ITensor of element type Float64 with non-zero elements 
+Make a sparse ITensor of element type Float64 with non-zero elements
 only along the diagonal. Defaults to storing zeros along the diagonal.
 The storage will have Diag type.
 """
@@ -191,7 +191,7 @@ diagITensor(is::IndexSet) = diagITensor(Float64,is)
 """
 diagITensor(is::Index...)
 
-Make a sparse ITensor of element type Float64 with non-zero elements 
+Make a sparse ITensor of element type Float64 with non-zero elements
 only along the diagonal. Defaults to storing zeros along the diagonal.
 The storage will have Diag type.
 """
@@ -200,7 +200,7 @@ diagITensor(inds::Index...) = diagITensor(IndexSet(inds...))
 """
 diagITensor(x::T, is::IndexSet) where {T<:Number}
 
-Make a sparse ITensor with non-zero elements only along the diagonal. 
+Make a sparse ITensor with non-zero elements only along the diagonal.
 The diagonal elements will be set to the value `x` and
 the ITensor will have element type `float(T)`.
 The storage will have Diag type.
@@ -213,7 +213,7 @@ end
 """
 diagITensor(x::T, is::Index...) where {T<:Number}
 
-Make a sparse ITensor with non-zero elements only along the diagonal. 
+Make a sparse ITensor with non-zero elements only along the diagonal.
 The diagonal elements will be set to the value `x` and
 the ITensor will have element type `float(T)`.
 The storage will have Diag type.
@@ -324,7 +324,7 @@ end
 Given an ITensor `T` with two indices `row_i` and `col_i`, returns
 a Matrix with a copy of the ITensor's elements. The
 order in which the indices are provided indicates
-which Index is to be treated as the row index of the 
+which Index is to be treated as the row index of the
 Matrix versus the column index.
 
 """
@@ -566,7 +566,7 @@ end
 
 function exphermitian(A::ITensor,
                       Linds,
-                      Rinds = prime(IndexSet(Linds))) 
+                      Rinds = prime(IndexSet(Linds)))
   return exp(A,Linds,Rinds;ishermitian=true)
 end
 

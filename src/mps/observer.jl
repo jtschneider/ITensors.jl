@@ -27,13 +27,18 @@ struct DMRGObserver <: AbstractObserver
   etol::Float64
   minsweeps::Int64
 
-  function DMRGObserver(etol::Real=0, 
-                        minsweeps::Int=2) 
+  function DMRGObserver(etol::Real=0,
+                        minsweeps::Int=2)
     new([],[],Dict{String,DMRGMeasurement}(),[],[],etol,minsweeps)
   end
 
+<<<<<<< HEAD
   function DMRGObserver(ops::Vector{String}, 
                         sites::Vector{<:Index},
+=======
+  function DMRGObserver(ops::Vector{String},
+                        sites::Vector{Index},
+>>>>>>> 864a3a0998e3fa5689c65b8fcbbfd92d0663d949
                         etol::Real=0,
                         minsweeps::Int=2)
     measurements = Dict(o => DMRGMeasurement() for o in ops)
@@ -99,4 +104,3 @@ function checkdone!(o::DMRGObserver; kwargs...)
   end
   return false
 end
-

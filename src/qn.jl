@@ -6,7 +6,7 @@ export QNVal,
        isactive,
        isfermionic
 
-struct QNVal 
+struct QNVal
   name::SmallString
   val::Int
   modulus::Int
@@ -32,6 +32,7 @@ isfermionic(qv::QNVal) = (modulus(qv) < 0)
 Base.:<(qv1::QNVal,qv2::QNVal) = (name(qv1) < name(qv2))
 Base.:-(qv::QNVal) =  QNVal(name(qv),-val(qv),modulus(qv))
 
+<<<<<<< HEAD:src/qn.jl
 Base.zero(qv::QNVal) = QNVal(name(qv),0,modulus(qv))
 
 function Base.:*(dir::Arrow,qv::QNVal)
@@ -39,6 +40,9 @@ function Base.:*(dir::Arrow,qv::QNVal)
 end
 
 function pm(qv1::QNVal,qv2::QNVal,fac::Int) 
+=======
+function pm(qv1::QNVal,qv2::QNVal,fac::Int)
+>>>>>>> 864a3a0998e3fa5689c65b8fcbbfd92d0663d949:src/physics/qn.jl
   if name(qv1) != name(qv2)
     error("Cannot add QNVals with different names \"$(name(qv1))\", \"$(name(qv2))\"")
   end

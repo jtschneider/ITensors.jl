@@ -30,15 +30,16 @@ function op(::SpinOneSite,
   Z0P = sP(2)
   Dn = s(3)
   DnP = sP(3)
- 
+
   Op = ITensor(s',dag(s))
 
+
   if opname == "S⁺" || opname == "Splus" || opname == "S+"
-    Op[Z0P, Dn] = √2 
-    Op[UpP, Z0] = √2 
+    Op[Z0P, Dn] = √2
+    Op[UpP, Z0] = √2
   elseif opname == "S⁻" || opname == "Sminus" || opname == "S-"
-    Op[Z0P, Up] = √2 
-    Op[DnP, Z0] = √2 
+    Op[Z0P, Up] = √2
+    Op[DnP, Z0] = √2
   elseif opname == "Sˣ" || opname == "Sx"
     Op[Z0P, Up] = 1.0/√2
     Op[UpP, Z0] = 1.0/√2
@@ -50,29 +51,29 @@ function op(::SpinOneSite,
     Op[DnP, Z0] = -1.0/√2
     Op[Z0P, Dn] = +1.0/√2
   elseif opname == "Sʸ" || opname == "Sy"
-    Op = complex(Op) 
+    Op = complex(Op)
     Op[Z0P, Up] = +1.0/√2im
     Op[UpP, Z0] = -1.0/√2im
     Op[DnP, Z0] = +1.0/√2im
     Op[Z0P, Dn] = -1.0/√2im
   elseif opname == "Sᶻ" || opname == "Sz"
-    Op[UpP, Up] = 1.0 
+    Op[UpP, Up] = 1.0
     Op[DnP, Dn] = -1.0
   elseif opname == "Sᶻ²" || opname == "Sz2"
-    Op[UpP, Up] = 1.0 
+    Op[UpP, Up] = 1.0
     Op[DnP, Dn] = 1.0
   elseif opname == "Sˣ²" || opname == "Sx2"
     Op[UpP, Up] = 0.5
     Op[DnP, Up] = 0.5
-    Op[Z0P, Z0] = 1.0 
-    Op[UpP, Dn] = 0.5 
-    Op[DnP, Dn] = 0.5 
+    Op[Z0P, Z0] = 1.0
+    Op[UpP, Dn] = 0.5
+    Op[DnP, Dn] = 0.5
   elseif opname == "Sʸ²" || opname == "Sy2"
     Op[UpP, Up] = 0.5
     Op[DnP, Up] = -0.5
-    Op[Z0P, Z0] = 1.0 
-    Op[UpP, Dn] = -0.5 
-    Op[DnP, Dn] = 0.5 
+    Op[Z0P, Z0] = 1.0
+    Op[UpP, Dn] = -0.5
+    Op[DnP, Dn] = 0.5
   elseif opname == "projUp"
     Op[UpP, Up] = 1.
   elseif opname == "projZ0"
@@ -101,4 +102,3 @@ function op(::SpinOneSite,
   end
   return Op
 end
-
