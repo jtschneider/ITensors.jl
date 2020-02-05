@@ -23,27 +23,7 @@ export Index,
 const IDType = UInt64
 
 """
-<<<<<<< HEAD
-An `Index` represents a single tensor index with fixed dimension `dim`. Copies of an Index compare equal unless their 
-=======
-   Arrow
-`enum` type that can take three values: `In`, `Out`, or `Neither`, representing a directionality
-associated with an index, i.e. the index leg is directed into or out of a given tensor
-"""
-@enum Arrow In=-1 Out=1 Neither=0
-
-"""
-    -(dir::Arrow)
-Reverse direction of a directed `Arrow`.
-"""
-function Base.:-(dir::Arrow)
-  dir==Neither && return Neither #throw(ArgumentError("Cannot reverse direction of Arrow direction 'Neither'"))
-  return dir==In ? Out : In
-end
-
-"""
 An `Index` represents a single tensor index with fixed dimension `dim`. Copies of an Index compare equal unless their
->>>>>>> 864a3a0998e3fa5689c65b8fcbbfd92d0663d949
 `tags` are different.
 
 An Index carries a `TagSet`, a set of tags which are small strings that specify properties of the `Index` to help

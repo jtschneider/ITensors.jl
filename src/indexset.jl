@@ -37,7 +37,7 @@ IndexSet(inds::NTuple{N,<:Index}) where {N} = IndexSet{N}(inds)
 
 # TODO: what is this used for? Should we have this?
 # It is not type stable.
-function IndexSet(vi::Vector{Index}) 
+function IndexSet(vi::Vector{Index})
   N = length(vi)
   return IndexSet{N}(NTuple{N,Index}(vi))
 end
@@ -575,7 +575,6 @@ function readcpp(io::IO,::Type{IndexSet};kwargs...)
   end
   return is
 end
-<<<<<<< HEAD
 
 function HDF5.write(parent::Union{HDF5File,HDF5Group},
                     name::AbstractString,
@@ -601,5 +600,3 @@ function HDF5.read(parent::Union{HDF5File,HDF5Group},
   it = ntuple(n->read(g,"index_$n",Index),N)
   return IndexSet(it)
 end
-=======
->>>>>>> 864a3a0998e3fa5689c65b8fcbbfd92d0663d949

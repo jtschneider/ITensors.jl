@@ -32,13 +32,9 @@ struct DMRGObserver <: AbstractObserver
     new([],[],Dict{String,DMRGMeasurement}(),[],[],etol,minsweeps)
   end
 
-<<<<<<< HEAD
-  function DMRGObserver(ops::Vector{String}, 
-                        sites::Vector{<:Index},
-=======
+
   function DMRGObserver(ops::Vector{String},
-                        sites::Vector{Index},
->>>>>>> 864a3a0998e3fa5689c65b8fcbbfd92d0663d949
+                        sites::Vector{<:Index},
                         etol::Real=0,
                         minsweeps::Int=2)
     measurements = Dict(o => DMRGMeasurement() for o in ops)
