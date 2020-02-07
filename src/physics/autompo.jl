@@ -11,11 +11,7 @@ export SiteOp,
        toMPO,
        MPOTerm,
        MatElem,
-       SiteOp,
-       name,
-       site,
-       ops,
-       coef
+       SiteOp
 
 ###########################
 # SiteOp                  #
@@ -237,7 +233,7 @@ function determineValType(terms::Vector{MPOTerm})
   return Float64
 end
 
-function computeSiteProd(sites::Vector{Index},
+function computeSiteProd(sites,
                          ops::OpTerm)::ITensor
   i = ops[1].site
   T = op(sites[i],ops[1].name)
@@ -271,7 +267,7 @@ function remove_dups!(v::Vector{T}) where {T}
 end
 
 function svdMPO(ampo::AutoMPO,
-                sites::Vector{Index};
+                sites;
                 kwargs...)::MPO
 
   mindim::Int = get(kwargs,:mindim,1)
