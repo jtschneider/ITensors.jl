@@ -32,7 +32,6 @@ struct DMRGObserver <: AbstractObserver
     new([],[],Dict{String,DMRGMeasurement}(),[],[],etol,minsweeps)
   end
 
-
   function DMRGObserver(ops::Vector{String},
                         sites::Vector{<:Index},
                         etol::Real=0,
