@@ -1,0 +1,6 @@
+*.o
+*.swp
+benchmark/mult
+Manifest.toml
+test/data.h5
+.DS_Store
