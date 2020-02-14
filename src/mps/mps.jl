@@ -34,23 +34,6 @@ mutable struct MPS
   end
 end
 
-function MPS(sites)
-  N = length(sites)
-  v = Vector{ITensor}(undef, N)
-  l = [Index(1, "Link,l=$ii") for ii=1:N-1]
-  for ii in eachindex(sites)
-    s = sites[ii]
-    if ii == 1
-      v[ii] = ITensor(l[ii], s)
-    elseif ii == N
-      v[ii] = ITensor(l[ii-1], s)
-    else
-      v[ii] = ITensor(l[ii-1],s,l[ii])
-    end
-  end
-  return MPS(N,v,0,N+1)
-end
-
 function MPS(::Type{T},sites) where {T<:Number}
            N = length(sites)
            v = Vector{ITensor}(undef, N)
@@ -67,6 +50,8 @@ function MPS(::Type{T},sites) where {T<:Number}
            end
            return MPS(N,v,0,N+1)
        end
+
+MPS(sites) = MPS(Float64,sites)
 
 Base.length(m::MPS) = m.N_
 
