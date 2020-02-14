@@ -1,10 +1,7 @@
 export tdvp1
 
 
-function tdvp1(H::MPO,
-              psi0::MPS,
-              sweeps::Sweeps;
-              kwargs...)::Tuple{Float64,MPS}
+function tdvp1(H::MPO, psi0::MPS, sweeps::Sweeps; kwargs...)::Tuple{Float64,MPS}
 
   which_factorization::String = get(kwargs,:which_factorization,"automatic")
   obs = get(kwargs,:observer, NoObserver())
@@ -20,39 +17,27 @@ function tdvp1(H::MPO,
   for sw=1:nsweep(sweeps)
     sw_time = @elapsed begin
 
-    for (b,ha) in sweepnext(N)
+      for (b,ha) in sweepnext(N)
+        @timeit_debug GLOBAL_TIMER "position!" begin
+          position!(PH,psi,b)
+        end
 
-@timeit_debug GLOBAL_TIMER "position!" begin
-      position!(PH,psi,b)
-end
+        @timeit_debug GLOBAL_TIMER "psi[b]*psi[b+1]" begin
+          phi = psi[b]*psi[b+1]
+        end
 
-@timeit_debug GLOBAL_TIMER "psi[b]*psi[b+1]" begin
-      phi = psi[b]*psi[b+1]
-end
+        @timeit_debug GLOBAL_TIMER "Krylov exponentiate" begin
+          energy,phi = iterEigSolve_KrylovKit(PH,phi;kwargs...)
+        end
 
-@timeit_debug GLOBAL_TIMER "Krylov" begin
-      energy,phi = iterEigSolve_KrylovKit(PH,phi;kwargs...)
-end
+        dir = ha==1 ? "fromleft" : "fromright"
 
-      dir = ha==1 ? "fromleft" : "fromright"
+        @timeit_debug GLOBAL_TIMER "replacebond!" begin
+          spec = replacebond!(psi,b,phi; maxdim=maxdim(sweeps,sw), mindim=mindim(sweeps,sw), cutoff=cutoff(sweeps,sw), dir=dir, which_factorization=which_factorization)
+        end
 
-@timeit_debug GLOBAL_TIMER "replacebond!" begin
-      spec = replacebond!(psi,b,phi;
-                          maxdim=maxdim(sweeps,sw),
-                          mindim=mindim(sweeps,sw),
-                          cutoff=cutoff(sweeps,sw),
-                          dir=dir,
-                          which_factorization=which_factorization)
-end
-
-      measure!(obs;energy=energy,
-               psi=psi,
-               bond=b,
-               sweep=sw,
-               half_sweep=ha,
-               spec = spec,
-               quiet=quiet)
-    end
+        measure!(obs;energy=energy, psi=psi, bond=b, sweep=sw, half_sweep=ha, spec = spec, quiet=quiet)
+      end
     end
     if !quiet
       @printf("After sweep %d energy=%.12f maxlinkdim=%d time=%.3f\n",sw,energy,maxlinkdim(psi),sw_time)
@@ -78,4 +63,4 @@ Inputs:
 Returns:
 * `energy::Float64` - eigenvalue of the optimized MPS
 * `psi::MPS` - optimized MPS
-""" dmrg_krylov
+""" tdvp1
