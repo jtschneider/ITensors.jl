@@ -98,7 +98,7 @@ ITensor(inds::Vararg{Index,N}) where {N} = ITensor(IndexSet{N}(inds...))
 
 function ITensor(::Type{T},
                  inds::IndexSet{N}) where {T<:Number,N}
-  return ITensor{N}(Dense{float(T)}(zeros(float(T),dim(inds))),inds)
+  return ITensor{N}(Dense{T}(zeros(T,dim(inds))),inds)
 end
 ITensor(::Type{T},inds::Index...) where {T<:Number} = ITensor(T,IndexSet(inds...))
 
