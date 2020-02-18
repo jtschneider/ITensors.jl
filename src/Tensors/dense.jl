@@ -216,10 +216,10 @@ Base.fill!(T::DenseTensor,v) = fill!(store(T),v)
 
 # How does Julia map from IndexCartesian to IndexLinear?
 #Base.getindex(T::DenseTensor{<:Number,N},
-#              i::Vararg{Int,N}) where {N} = 
+#              i::Vararg{Int,N}) where {N} =
 #store(T)[sum(i.*strides(T))+1-sum(strides(T))]
 #Base.setindex!(T::DenseTensor{<:Number,N},
-#               v,i::Vararg{Int,N}) where {N} = 
+#               v,i::Vararg{Int,N}) where {N} =
 #(store(T)[sum(i.*strides(T))+1-sum(strides(T))] = v)
 
 # Get the specified value on the diagonal
@@ -432,7 +432,7 @@ function contraction_output(T1::Tensor,
                             labelsT1,
                             T2::Tensor,
                             labelsT2,
-                            labelsR) 
+                            labelsR)
   indsR = contract_inds(inds(T1),labelsT1,inds(T2),labelsT2,labelsR)
   R = contraction_output(T1,T2,indsR)
   return R
@@ -626,6 +626,9 @@ function permute_reshape(T::DenseTensor{ElT,NT,IndsT},
   return reshape(T,newinds)
 end
 
+Base.conj(T::DenseTensor{<:Real,N}) where {N} = T
+Base.conj(T::DenseTensor) = Tensor(Dense(conj(store(T))), copy(inds(T)))
+
 LinearAlgebra.norm(T::DenseTensor) = norm(store(T))
 
 # svd of an order-n tensor according to positions Lpos
@@ -638,7 +641,7 @@ function LinearAlgebra.svd(T::DenseTensor{<:Number,N,IndsT},
   UM,S,VM,spec = svd(M;kwargs...)
   u = ind(UM,2)
   v = ind(VM,2)
-  
+
   Linds = similar_type(IndsT,Val{NL})(ntuple(i->inds(T)[Lpos[i]],Val(NL)))
   Uinds = push(Linds,u)
 
@@ -652,7 +655,7 @@ function LinearAlgebra.svd(T::DenseTensor{<:Number,N,IndsT},
   return U,S,V,spec
 end
 
-# eigendecomposition of an order-n tensor according to 
+# eigendecomposition of an order-n tensor according to
 # positions Lpos and Rpos
 function eigenHermitian(T::DenseTensor{<:Number,N,IndsT},
                         Lpos::NTuple{NL,Int},
@@ -667,7 +670,7 @@ function eigenHermitian(T::DenseTensor{<:Number,N,IndsT},
   return U,D,spec
 end
 
-# qr decomposition of an order-n tensor according to 
+# qr decomposition of an order-n tensor according to
 # positions Lpos and Rpos
 function LinearAlgebra.qr(T::DenseTensor{<:Number,N,IndsT},
                           Lpos::NTuple{NL,Int},
@@ -728,8 +731,8 @@ function LinearAlgebra.exp(T::DenseTensor{ElT,N},
   end
 end
 
-function HDF5.write(parent::Union{HDF5File, HDF5Group}, 
-                    name::String, 
+function HDF5.write(parent::Union{HDF5File, HDF5Group},
+                    name::String,
                     D::Store) where {Store <: Dense}
   g = g_create(parent,name)
   attrs(g)["type"] = "Dense{$(eltype(Store))}"
@@ -772,4 +775,3 @@ function Base.show(io::IO,
   print_tensor(io,T)
   println(io)
 end
-
