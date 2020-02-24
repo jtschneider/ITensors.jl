@@ -629,8 +629,6 @@ function permute_reshape(T::DenseTensor{ElT,NT,IndsT},
   return reshape(T,newinds)
 end
 
-Base.conj(T::DenseTensor{<:Real,N}) where {N} = T
-Base.conj(T::DenseTensor) = Tensor(Dense(conj(store(T))), copy(inds(T)))
 
 LinearAlgebra.norm(T::DenseTensor) = norm(store(T))
 
