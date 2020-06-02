@@ -22,6 +22,14 @@ include("util.jl")
   psi[1] = ITensor(sites[1])
   @test hasind(psi[1],sites[1])
 
+  @testset "N=1 MPS" begin
+    sites1 = [Index(2,"Site,n=1")]
+    psi = MPS(sites1)
+    @test length(psi) == 1
+    @test siteind(psi,1) == sites1[1]
+    @test siteinds(psi)[1] == sites1[1]
+  end
+
   @testset "Missing links" begin
     psi = MPS([randomITensor(sites[i]) for i in 1:N])
     @test isnothing(linkind(psi, 1))
@@ -70,6 +78,24 @@ include("util.jl")
         sign = isodd(j) ? +1.0 : -1.0
         @test (psi[j]*op(sites,"Sz",j)*dag(prime(psi[j],"Site")))[] ≈ sign/2
       end
+
+      @testset "ComplexF64 eltype" begin
+        sites  = siteinds("S=1/2",N)
+        psi = productMPS(ComplexF64,sites,fill(1,N))
+        for j=1:N
+          @test eltype(psi[j]) <: ComplexF64
+        end
+      end
+    end
+
+    @testset "N=1 case" begin
+      site = Index(2,"Site,n=1")
+      psi = productMPS([site],[1])
+      @test psi[1][1] ≈ 1.0
+      @test psi[1][2] ≈ 0.0
+      psi = productMPS([site],[2])
+      @test psi[1][1] ≈ 0.0
+      @test psi[1][2] ≈ 1.0
     end
   end
 
@@ -110,6 +136,36 @@ include("util.jl")
     @test psipsi[] ≈ inner(psi,psi)
   end
   
+  @testset "norm MPS" begin
+    psi = randomMPS(sites,10)
+    psidag = ITensors.sim_linkinds(dag(psi))
+    psi² = ITensor(1)
+    for j = 1:N
+      psi² *= psidag[j] * psi[j]
+    end
+    @test psi²[] ≈ psi ⋅ psi
+    @test sqrt(psi²[]) ≈ norm(psi)
+    for j in 1:N
+      psi[j] .*= j
+    end
+    @test norm(psi) ≈ factorial(N)
+  end
+
+  @testset "lognorm MPS" begin
+    psi = randomMPS(sites,10)
+    for j in 1:N
+      psi[j] .*= j
+    end
+    psidag = ITensors.sim_linkinds(dag(psi))
+    psi² = ITensor(1)
+    for j = 1:N
+      psi² *= psidag[j] * psi[j]
+    end
+    @test psi²[] ≈ psi ⋅ psi
+    @test 0.5 * log(psi²[]) ≈ lognorm(psi)
+    @test lognorm(psi) ≈ log(factorial(N))
+  end
+
   @testset "scaling MPS" begin
     psi = randomMPS(sites)
     twopsidag = 2.0*dag(psi)
@@ -167,7 +223,7 @@ include("util.jl")
   @test ITensors.leftlim(psi) == div(N, 2) - 1
   @test ITensors.rightlim(psi) == div(N, 2) + 1
 
-  @test isnothing(linkind(MPS(N, fill(ITensor(), N), 0, N + 1), 1))
+  @test isnothing(linkind(MPS(fill(ITensor(), N), 0, N + 1), 1))
 
   @testset "replacebond!" begin
   # make sure factorization preserves the bond index tags

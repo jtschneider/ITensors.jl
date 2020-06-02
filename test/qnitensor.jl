@@ -16,6 +16,36 @@ Random.seed!(1234)
     @test nnzblocks(A) == 2
   end
 
+  @testset "Constructor (from Tuple)" begin
+    i = Index([QN(0)=>1,QN(1)=>2],"i")
+    j = Index([QN(0)=>3,QN(1)=>4,QN(2)=>5],"j")
+
+    A = ITensor(QN(0), (i, dag(j)))
+
+    @test flux(A) == QN(0)
+    @test nnzblocks(A) == 2
+  end
+
+  @testset "Constructor (no flux specified)" begin
+    i = Index([QN(0)=>1, QN(1)=>2], "i")
+    j = Index([QN(0)=>3, QN(1)=>4, QN(2)=>5], "j")
+
+    A = ITensor(i, dag(j))
+
+    @test flux(A) == QN(0)
+    @test nnzblocks(A) == 2
+  end
+
+  @testset "Constructor (Tuple, no flux specified)" begin
+    i = Index([QN(0)=>1, QN(1)=>2], "i")
+    j = Index([QN(0)=>3, QN(1)=>4, QN(2)=>5], "j")
+
+    A = ITensor((i, dag(j)))
+
+    @test flux(A) == QN(0)
+    @test nnzblocks(A) == 2
+  end
+
   @testset "No indices getindex" begin
     T = ITensor(QN())
     @test order(T) == 0
@@ -249,9 +279,29 @@ Random.seed!(1234)
       @test norm(A-Ap) ≈ 0.0
     end
 
-    @testset "Order 2" begin
+    @testset "Order 2 (IndexSet constructor)" begin
       i1 = Index([QN(0,2)=>2,QN(1,2)=>2],"i1")
       A = randomITensor(QN(),i1,dag(i1'))
+
+      iss = [i1,
+             dag(i1'),
+             (i1,dag(i1')),
+             (dag(i1'),i1)]
+
+      for is in iss
+        C = combiner(IndexSet(is); tags="c")
+        AC = A*C
+        @test nnz(AC) == nnz(A)
+        Ap = AC*dag(C)
+        @test nnz(Ap) == nnz(A)
+        @test nnzblocks(Ap) == nnzblocks(A)
+        @test norm(A-Ap) ≈ 0.0
+      end
+    end
+
+    @testset "Order 2" begin
+      i1 = Index([QN(0,2)=>2,QN(1,2)=>2],"i1")
+      A = randomITensor(QN(), (i1, dag(i1')))
 
       iss = [i1,
              dag(i1'),
@@ -528,6 +578,16 @@ Random.seed!(1234)
     @test TT ≈ T
   end
 
+  @testset "Combiner bug #395" begin
+    i1 = Index([QN(0)=>1,QN(1)=>2],"i1")
+    i2 = Index([QN(0)=>1,QN(1)=>2],"i2")
+    A = randomITensor(QN(),i1,i2,dag(i1)', dag(i2)')
+    CL = combiner(i1,i2)
+    CR = combiner(dag(i1)',dag(i2)')
+    AC = A * CR * CL
+    @test AC * dag(CR) * dag(CL) ≈ A
+  end
+
   @testset "Contract to scalar" begin
     i = Index([QN(0)=>1,QN(1)=>1],"i")
     A = randomITensor(QN(0),i,dag(i'))
@@ -700,12 +760,12 @@ Random.seed!(1234)
 
   end
 
-  @testset "svd" begin
+  @testset "svd" for ElT ∈ (Float64, ComplexF64)
 
     @testset "svd example 1" begin
       i = Index(QN(0)=>2,QN(1)=>2; tags="i")
       j = Index(QN(0)=>2,QN(1)=>2; tags="j")
-      A = randomITensor(QN(0),i,dag(j))
+      A = randomITensor(ElT, QN(0),i,dag(j))
       for b in nzblocks(A)
         @test flux(A,b)==QN(0)
       end
@@ -730,7 +790,7 @@ Random.seed!(1234)
     @testset "svd example 2" begin
       i = Index(QN(0)=>5,QN(1)=>6; tags="i")
       j = Index(QN(-1)=>2,QN(0)=>3,QN(1)=>4; tags="j")
-      A = randomITensor(QN(0),i,j)
+      A = randomITensor(ElT, QN(0),i,j)
       for b in nzblocks(A)
         @test flux(A,b)==QN(0)
       end
@@ -755,7 +815,7 @@ Random.seed!(1234)
     @testset "svd example 3" begin
       i = Index(QN(0)=>5,QN(1)=>6; tags="i")
       j = Index(QN(-1)=>2,QN(0)=>3,QN(1)=>4; tags="j")
-      A = randomITensor(QN(0),i,dag(j))
+      A = randomITensor(ElT, QN(0),i,dag(j))
       for b in nzblocks(A)
         @test flux(A,b)==QN(0)
       end
@@ -781,7 +841,7 @@ Random.seed!(1234)
 			i = Index(QN(0,2)=>2,QN(1,2)=>2; tags="i")
 			j = settags(i,"j")
 
-			A = randomITensor(QN(0,2),i,j,dag(i'),dag(j'))
+			A = randomITensor(ElT, QN(0,2),i,j,dag(i'),dag(j'))
 
 			U,S,V = svd(A,i,j)
 
@@ -809,7 +869,7 @@ Random.seed!(1234)
 			i = Index(QN(0,2)=>2,QN(1,2)=>2; tags="i")
 			j = settags(i,"j")
 
-			A = randomITensor(QN(1,2),i,j,dag(i'),dag(j'))
+			A = randomITensor(ElT, QN(1,2),i,j,dag(i'),dag(j'))
 
 			U,S,V = svd(A,i,j)
 
@@ -837,7 +897,7 @@ Random.seed!(1234)
 			i = Index(QN(0,2)=>2,QN(1,2)=>2; tags="i")
 			j = settags(i,"j")
 
-			A = randomITensor(QN(1,2),i,j,dag(i'),dag(j'))
+			A = randomITensor(ElT, QN(1,2),i,j,dag(i'),dag(j'))
 
 			U,S,V = svd(A,i,i')
 
@@ -864,7 +924,7 @@ Random.seed!(1234)
     @testset "svd truncation example 1" begin
       i = Index(QN(0)=>2,QN(1)=>3; tags="i")
       j = settags(i,"j")
-      A = randomITensor(QN(0),i,j,dag(i'),dag(j'))
+      A = randomITensor(ElT, QN(0),i,j,dag(i'),dag(j'))
       for i = 1:4
         A = mapprime(A*A',2,1)
       end
@@ -906,7 +966,7 @@ Random.seed!(1234)
       @test minimum(dims(S)) < dim(i)*dim(j)
 
       @test spec.truncerr ≤ cutoff
-      err = 1-(Ap*dag(Ap))[]/(A*dag(A))[]
+      err = real(1-(Ap*dag(Ap))[]/(A*dag(A))[])
       @test err ≤ cutoff
       @test isapprox(err,spec.truncerr; rtol=1e-6)
     end
@@ -914,7 +974,7 @@ Random.seed!(1234)
     @testset "svd truncation example 2" begin
       i = Index(QN(0)=>3,QN(1)=>2; tags="i")
       j = settags(i,"j")
-      A = randomITensor(QN(0),i,j,dag(i'),dag(j'))
+      A = randomITensor(ElT, QN(0),i,j,dag(i'),dag(j'))
 
       maxdim = 4
       U,S,V,spec = svd(A,i,j; utags="x", vtags="y", maxdim=maxdim)
@@ -957,7 +1017,7 @@ Random.seed!(1234)
     @testset "svd truncation example 3" begin
       i = Index(QN(0)=>2,QN(1)=>3,QN(2)=>4; tags="i")
       j = settags(i,"j")
-      A = randomITensor(QN(1),i,j,dag(i'),dag(j'))
+      A = randomITensor(ElT, QN(1),i,j,dag(i'),dag(j'))
 
       maxdim = 4
       U,S,V,spec = svd(A,i,j; utags="x", vtags="y", maxdim=maxdim)
@@ -1000,7 +1060,7 @@ Random.seed!(1234)
     @testset "svd truncation example 4" begin
       i = Index(QN(0,2)=>3,QN(1,2)=>4; tags="i")
       j = settags(i,"j")
-      A = randomITensor(QN(1,2),i,j,dag(i'),dag(j'))
+      A = randomITensor(ElT, QN(1,2),i,j,dag(i'),dag(j'))
 
       maxdim = 4
       U,S,V,spec = svd(A,i,j; utags="x", vtags="y", maxdim=maxdim)
@@ -1043,7 +1103,7 @@ Random.seed!(1234)
     @testset "svd truncation example 5" begin
       i = Index(QN(0,2)=>2,QN(1,2)=>3; tags="i")
       j = settags(i,"j")
-      A = randomITensor(QN(1,2),i,j,dag(i'),dag(j'))
+      A = randomITensor(ElT, QN(1,2),i,j,dag(i'),dag(j'))
 
       maxdim = 4
       U,S,V,spec = svd(A,i,j'; utags="x", vtags="y", maxdim=maxdim)
@@ -1096,7 +1156,7 @@ Random.seed!(1234)
                 QN("Nf",1,-1)=>2,
                 tags="Link,u")
 
-      A = emptyITensor(l,s,dag(r))
+      A = emptyITensor(ElT, l,s,dag(r))
 
       addblock!(A,(2,1,2))
       addblock!(A,(1,2,2))
@@ -1126,7 +1186,7 @@ Random.seed!(1234)
                 QN("Sz", 0) => 6,
                 QN("Sz", 2) => 4,
                 QN("Sz", 4) => 1)
-      A = emptyITensor(s, s')
+      A = emptyITensor(ElT, s, s')
       addblock!(A, (5,2))
       addblock!(A, (4,3))
       addblock!(A, (3,4))
@@ -1142,7 +1202,7 @@ Random.seed!(1234)
                 QN("Sz", 0) => 6,
                 QN("Sz", 2) => 4,
                 QN("Sz", 4) => 1)
-      A = emptyITensor(s, s')
+      A = emptyITensor(ElT, s, s')
       addblock!(A, (5,1))
       addblock!(A, (4,2))
       addblock!(A, (3,3))
@@ -1159,7 +1219,7 @@ Random.seed!(1234)
                 QN("Sz", 0) => 6,
                 QN("Sz", 2) => 4,
                 QN("Sz", 4) => 1)
-      A = emptyITensor(s, s')
+      A = emptyITensor(ElT, s, s')
       addblock!(A, (5,1))
       addblock!(A, (4,2))
       addblock!(A, (3,3))

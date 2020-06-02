@@ -148,16 +148,15 @@ storage and indices as the ITensor.
 NDTensors.tensor(A::ITensor) = tensor(store(A),inds(A))
 
 """
-    ITensor([::Type{ElT} = Float64, ]inds::IndexSet) where {ElT <: Number}
-
-    ITensor([::Type{ElT} = Float64, ]inds::Index...) where {ElT <: Number}
+    ITensor([::Type{ElT} = Float64, ]inds)
+    ITensor([::Type{ElT} = Float64, ]inds::Index...)
 
 Construct an ITensor filled with zeros having indices `inds` and element type `ElT`. If the element type is not specified, it defaults to `Float64`.
 
 The storage will have `NDTensors.Dense` type.
 """
 function ITensor(::Type{ElT},
-                 inds::IndexSet) where {ElT <: Number}
+                 inds::Indices) where {ElT <: Number}
   return itensor(Dense(ElT, dim(inds)), inds)
 end
 
@@ -168,7 +167,7 @@ ITensor(::Type{ElT},
 # To fix ambiguity with QN Index version
 ITensor(::Type{ElT}) where {ElT <: Number} = ITensor(ElT, IndexSet())
 
-ITensor(is::IndexSet) = ITensor(Float64, is)
+ITensor(is::Indices) = ITensor(Float64, is)
 
 ITensor(inds::Index...) = ITensor(Float64, IndexSet(inds...))
 
@@ -176,9 +175,8 @@ ITensor(inds::Index...) = ITensor(Float64, IndexSet(inds...))
 ITensor() = ITensor(Float64, IndexSet())
 
 """
-    ITensor([::Type{ElT} = Float64, ]::UndefInitializer, inds::IndexSet) where {ElT <: Number}
-
-    ITensor([::Type{ElT} = Float64, ]::UndefInitializer, inds::Index...) where {ElT <: Number}
+    ITensor([::Type{ElT} = Float64, ]::UndefInitializer, inds)
+    ITensor([::Type{ElT} = Float64, ]::UndefInitializer, inds::Index...)
 
 Construct an ITensor filled with undefined elements having indices `inds` and element type `ElT`. If the element type is not specified, it defaults to `Float64`.
 
@@ -186,7 +184,7 @@ The storage will have `NDTensors.Dense` type.
 """
 function ITensor(::Type{ElT},
                  ::UndefInitializer,
-                 inds::IndexSet) where {ElT <: Number}
+                 inds::Indices) where {ElT <: Number}
   return itensor(Dense(ElT, undef, dim(inds)), inds)
 end
 
@@ -197,14 +195,13 @@ ITensor(::Type{ElT},
                                               IndexSet(inds...))
 
 ITensor(::UndefInitializer,
-        inds::IndexSet) = ITensor(Float64, undef, inds)
+        inds::Indices) = ITensor(Float64, undef, inds)
 
 ITensor(::UndefInitializer,
         inds::Index...) = ITensor(Float64, undef, IndexSet(inds...))
 
 """
-    ITensor(x::Number, inds::IndexSet)
-
+    ITensor(x::Number, inds)
     ITensor(x::Number, inds::Index...)
 
 Construct an ITensor with all elements set to `float(x)` and indices `inds`.
@@ -212,7 +209,7 @@ Construct an ITensor with all elements set to `float(x)` and indices `inds`.
 The storage will have `NDTensors.Dense` type.
 """
 function ITensor(x::Number,
-                 inds::IndexSet)
+                 inds::Indices)
   return itensor(Dense(float(x),dim(inds)),inds)
 end
 
@@ -224,14 +221,13 @@ ITensor(x::Number,
 #
 
 """
-    emptyITensor([::Type{ElT} = Float64, ]inds::IndexSet) where {ElT <: Number}
-
-    emptyITensor([::Type{ElT} = Float64, ]inds::Index...) where {ElT <: Number}
+    emptyITensor([::Type{ElT} = Float64, ]inds)
+    emptyITensor([::Type{ElT} = Float64, ]inds::Index...)
 
 Construct an ITensor with storage type `NDTensors.Empty`, indices `inds`, and element type `ElT`. If the element type is not specified, it defaults to `Float64`.
 """
 function emptyITensor(::Type{ElT},
-                      inds::IndexSet) where {ElT <: Number}
+                      inds::Indices) where {ElT <: Number}
   return itensor(EmptyTensor(ElT, inds))
 end
 
@@ -240,7 +236,7 @@ function emptyITensor(::Type{ElT},
   return emptyITensor(ElT, IndexSet(inds...))
 end
 
-emptyITensor(is::IndexSet) = emptyITensor(Float64, is)
+emptyITensor(is::Indices) = emptyITensor(Float64, is)
 
 emptyITensor(inds::Index...) = emptyITensor(Float64,
                                             IndexSet(inds...))
@@ -252,7 +248,7 @@ end
 emptyITensor() = emptyITensor(Float64)
 
 """
-    emptyITensor(::Type{ElT} = Float64, ::Type{Any}) where {ElT <: Number}
+    emptyITensor([::Type{ElT} = Float64, ]::Type{Any})
 
 Construct an ITensor with empty storage and `Any` number of indices.
 """
@@ -267,7 +263,7 @@ emptyITensor(::Type{Any}) = emptyITensor(Float64, Any)
 #
 
 """
-    itensor(A::Array, inds::IndexSet)
+    itensor(A::Array, inds)
     itensor(A::Array, inds::Index...)
 
 Construct an ITensor from an Array `A` and indices `inds`.
@@ -276,7 +272,7 @@ Array (`float(A)`), and the storage will be a view of the Array
 data if possible (if the Array already has floating point elements).
 """
 function itensor(A::Array{<:Number},
-                 inds::IndexSet)
+                 inds::Indices)
   length(A) ≠ dim(inds) && throw(DimensionMismatch("In ITensor(::Array, ::IndexSet), length of Array ($(length(A))) must match total dimension of IndexSet ($(dim(inds)))"))
   return itensor(Dense(float(vec(A))), inds)
 end
@@ -285,7 +281,7 @@ itensor(A::Array{<:Number},
         inds::Index...) = itensor(A, IndexSet(inds...))
 
 """
-    ITensor(A::Array, inds::IndexSet)
+    ITensor(A::Array, inds)
     ITensor(A::Array, inds::Index...)
 
 Construct an ITensor from an Array `A` and indices `inds`.
@@ -294,10 +290,10 @@ Array (`float(A)`), and the storage will store a copy of the Array
 data.
 """
 ITensor(A::Array{<:AbstractFloat},
-        inds::IndexSet) = itensor(copy(A), inds)
+        inds::Indices) = itensor(copy(A), inds)
 
 ITensor(A::Array,
-        inds::IndexSet) = itensor(A, inds)
+        inds::Indices) = itensor(A, inds)
 
 ITensor(A::Array, inds::Index...) = ITensor(A, IndexSet(inds...))
 
@@ -306,8 +302,8 @@ ITensor(A::Array, inds::Index...) = ITensor(A, IndexSet(inds...))
 #
 
 """
-    diagITensor(::Type{ElT}, is::IndexSet)
-    diagITensor(::Type{ElT}, is::Index...)
+    diagITensor([::Type{ElT} = Float64, ]inds)
+    diagITensor([::Type{ElT} = Float64, ]inds::Index...)
 
 Make a sparse ITensor of element type `ElT` with only elements
 along the diagonal stored. Defaults to having `zero(T)` along 
@@ -316,7 +312,7 @@ the diagonal.
 The storage will have `NDTensors.Diag` type.
 """
 function diagITensor(::Type{ElT},
-                     is::IndexSet) where {ElT}
+                     is::Indices) where {ElT}
   return itensor(Diag(ElT, mindim(is)), is)
 end
 
@@ -324,9 +320,13 @@ diagITensor(::Type{ElT},
             inds::Index...) where {ElT} = diagITensor(ElT,
                                                       IndexSet(inds...))
 
+diagITensor(is::Indices) = diagITensor(Float64, is)
+
+diagITensor(inds::Index...) = diagITensor(Float64, IndexSet(inds...))
+
 """
-    diagITensor(v::Vector{T}, is::IndexSet)
-    diagITensor(v::Vector{T}, is::Index...)
+    diagITensor(v::Vector{T}, inds)
+    diagITensor(v::Vector{T}, inds::Index...)
 
 Make a sparse ITensor with non-zero elements only along the diagonal. 
 The diagonal elements will be set to the values stored in `v` and 
@@ -334,31 +334,19 @@ the ITensor will have element type `float(T)`.
 The storage will have type `NDTensors.Diag`.
 """
 function diagITensor(v::Vector{<:Number},
-                     is::IndexSet)
+                     is::Indices)
   length(v) ≠ mindim(is) && error("Length of vector for diagonal must equal minimum of the dimension of the input indices")
-  return itensor(Diag(float(v)),is)
+  return itensor(Diag(float(v)), is)
 end
 
 function diagITensor(v::Vector{<:Number},
                      is::Index...)
-  return diagITensor(v,IndexSet(is...))
+  return diagITensor(v, IndexSet(is...))
 end
 
 """
-    diagITensor(is::IndexSet)
-    diagITensor(is::Index...)
-
-Make a sparse ITensor of element type Float64 with non-zero elements 
-only along the diagonal. Defaults to storing zeros along the diagonal.
-The storage will have `NDTensors.Diag` type.
-"""
-diagITensor(is::IndexSet) = diagITensor(Float64,is)
-
-diagITensor(inds::Index...) = diagITensor(IndexSet(inds...))
-
-"""
-    diagITensor(x::Number, is::IndexSet)
-    diagITensor(x::Number, is::Index...)
+    diagITensor(x::Number, inds)
+    diagITensor(x::Number, inds::Index...)
 
 Make a sparse ITensor with non-zero elements only along the diagonal. 
 The diagonal elements will be set to the value `float(x)` and
@@ -366,7 +354,7 @@ the ITensor will have element type `float(eltype(x))`.
 The storage will have `NDTensors.Diag` type.
 """
 function diagITensor(x::Number,
-                     is::IndexSet)
+                     is::Indices)
   return itensor(Diag(float(x), mindim(is)), is)
 end
 
@@ -376,8 +364,8 @@ function diagITensor(x::Number,
 end
 
 """
-    delta(::Type{ElT <: Number}, inds::IndexSet)
-    delta(::Type{ElT <: Number}, inds::Index...)
+    delta([::Type{ElT} = Float64, ]inds)
+    delta([::Type{ElT} = Float64, ]inds::Index...)
 
 Make a uniform diagonal ITensor with all diagonal elements
 `one(ElT)`. Only a single diagonal element is stored.
@@ -385,7 +373,7 @@ Make a uniform diagonal ITensor with all diagonal elements
 This function has an alias `δ`.
 """
 function delta(::Type{T},
-               is::IndexSet) where {T<:Number}
+               is::Indices) where {T<:Number}
   return itensor(Diag(one(T)), is)
 end
 
@@ -394,18 +382,9 @@ function delta(::Type{T},
   return delta(T, IndexSet(is...))
 end
 
-"""
-    delta(inds::IndexSet)
-    delta(inds::Index...)
+delta(is::Indices) = delta(Float64, is)
 
-Make a uniform diagonal ITensor with all diagonal elements
-`one(Float64)`. Only a single diagonal element is stored.
-
-This function has an alias `δ`.
-"""
-delta(is::IndexSet) = delta(Float64, is)
-
-delta(is::Index...) = delta(IndexSet(is...))
+delta(is::Index...) = delta(Float64, IndexSet(is...))
 
 const δ = delta
 
@@ -444,79 +423,79 @@ Base.complex(T::ITensor) = itensor(complex(tensor(T)))
 Base.eltype(T::ITensor) = eltype(tensor(T))
 
 """
-    order(A::ITensor) = ndims(A)
+    order(A::ITensor)
+    ndims(A::ITensor)
 
 The number of indices, `length(inds(A))`.
 """
 order(T::ITensor) = ndims(T)
 
-Base.ndims(T::ITensor) = length(inds(T))
+Base.ndims(::ITensor{N}) where {N} = N
 
 """
-    dim(A::ITensor) = length(A)
+    dim(A::ITensor)
 
-The total number of entries, `prod(size(A))`.
+The total dimension of the space the tensor lives in, `prod(dims(A))`.
 """
 NDTensors.dim(T::ITensor) = dim(inds(T))
 
 """
-    dims(A::ITensor) = size(A)
+    dims(A::ITensor)
+    size(A::ITensor)
 
-Tuple containing `size(A,d) == dim(inds(A)[d]) for d in 1:ndims(A)`.
+Tuple containing `dim(inds(A)[d]) for d in 1:ndims(A)`.
 """
 NDTensors.dims(T::ITensor) = dims(inds(T))
 
-Base.size(A::ITensor) = dims(inds(A))
+Base.size(T::ITensor) = dims(T)
 
 Base.size(A::ITensor,
-          d::Int) = dim(inds(A),d)
+          d::Int) = dim(inds(A), d)
 
 Base.copy(T::ITensor) = itensor(copy(tensor(T)))
 
 """
     Array{ElT}(T::ITensor, i:Index...)
+    Array(T::ITensor, i:Index...)
+
+    Matrix{ElT}(T::ITensor, row_i:Index, col_i::Index)
+    Matrix(T::ITensor, row_i:Index, col_i::Index)
+
+    Vector{ElT}(T::ITensor)
+    Vector(T::ITensor)
 
 Given an ITensor `T` with indices `i...`, returns
 an Array with a copy of the ITensor's elements. The
 order in which the indices are provided indicates
 the order of the data in the resulting Array.
 """
-function Base.Array{ElT,N}(T::ITensor{N},is::Vararg{Index,N}) where {ElT,N}
-  return Array{ElT,N}(tensor(permute(T,is...)))::Array{ElT,N}
+function Base.Array{ElT, N}(T::ITensor{N},
+                            is::Vararg{Index, N}) where {ElT, N}
+  TT = tensor(permute(T, is...; always_copy = true))
+  return Array{ElT, N}(TT)::Array{ElT, N}
 end
 
-function Base.Array{ElT}(T::ITensor{N},is::Vararg{Index,N}) where {ElT,N}
-  return Array{ElT,N}(T,is...)
+function Base.Array{ElT}(T::ITensor{N},
+                         is::Vararg{Index, N}) where {ElT, N}
+  return Array{ElT, N}(T, is...)
 end
 
-function Base.Array(T::ITensor{N},is::Vararg{Index,N}) where {N}
-  return Array{eltype(T),N}(T,is...)::Array{<:Number,N}
+function Base.Array(T::ITensor{N},
+                    is::Vararg{Index, N}) where {N}
+  return Array{eltype(T), N}(T, is...)::Array{<:Number, N}
 end
 
-"""
-    Matrix(T::ITensor, row_i:Index, col_i::Index)
-
-Given an ITensor `T` with two indices `row_i` and `col_i`, returns
-a Matrix with a copy of the ITensor's elements. The
-order in which the indices are provided indicates
-which Index is to be treated as the row index of the 
-Matrix versus the column index.
-
-"""
-function Base.Matrix(T::ITensor{2},row_i::Index,col_i::Index)
-  return Array(T,row_i,col_i)
-end
-
-function Base.Vector(T::ITensor{1},i::Index)
-  return Array(T,i)
+function Base.Array{<:Any, N}(T::ITensor{N},
+                              is::Vararg{Index, N}) where {N}
+  return Array(T, is...)
 end
 
 function Base.Vector{ElT}(T::ITensor{1}) where {ElT}
-  return Vector{ElT}(T,inds(T)...)
+  return Array{ElT}(T,inds(T)...)
 end
 
 function Base.Vector(T::ITensor{1})
-  return Vector(T,inds(T)...)
+  return Array(T,inds(T)...)
 end
 
 """
@@ -567,10 +546,15 @@ A[i => 1, i' => 2] # 2.0, same as: A[i' => 2, i => 1]
 function Base.getindex(T::ITensor, ivs...)
   p = NDTensors.getperm(inds(T), ind.(ivs))
   vals = NDTensors.permute(val.(ivs), p)
-  return T[vals...]
+  return T[vals...]::Number
 end
 
-Base.getindex(T::ITensor) = tensor(T)[]
+function Base.getindex(T::ITensor) 
+  if order(T) != 0
+    throw(DimensionMismatch("In scalar(T) or T[], ITensor T is not a scalar"))
+  end
+  return tensor(T)[]::Number
+end
 
 """
     setindex!(T::ITensor, x::Number, I::Int...)
@@ -648,8 +632,8 @@ itensor2inds(A) = A
 hasind(A,i::Index) = i ∈ itensor2inds(A)
 
 # issubset
-hasinds(A,is) = is ⊆ itensor2inds(A)
-hasinds(A,is::Index...) = hasinds(A,IndexSet(is...))
+hasinds(A, is) = is ⊆ itensor2inds(A)
+hasinds(A, is::Index...) = hasinds(A, IndexSet(is...))
 
 # issetequal
 hassameinds(A,B) = issetequal(itensor2inds(A),
@@ -913,17 +897,15 @@ function Random.randn!(T::ITensor)
   return randn!(tensor(T))
 end
 
-const Indices = Union{IndexSet, Tuple{Vararg{Index}}}
-
 """
-    randomITensor([::Type{ElT <: Number} = Float64, ]inds::IndexSet)
+    randomITensor([::Type{ElT <: Number} = Float64, ]inds)
 
     randomITensor([::Type{ElT <: Number} = Float64, ]inds::Index...)
 
 Construct an ITensor with type `ElT` and indices `inds`, whose elements are normally distributed random numbers. If the element type is not specified, it defaults to `Float64`.
 """
 function randomITensor(::Type{S},
-                       inds::IndexSet) where {S <: Number}
+                       inds::Indices) where {S <: Number}
   T = ITensor(S, inds)
   randn!(T)
   return T
@@ -939,7 +921,7 @@ function randomITensor(::Type{ElT}) where {ElT <: Number}
   return randomITensor(ElT, IndexSet())
 end
 
-randomITensor(inds::IndexSet) = randomITensor(Float64, inds)
+randomITensor(inds::Indices) = randomITensor(Float64, inds)
 
 randomITensor(inds::Index...) = randomITensor(Float64,
                                               IndexSet(inds...))
@@ -947,7 +929,7 @@ randomITensor(inds::Index...) = randomITensor(Float64,
 # To fix ambiguity errors with QN version
 randomITensor() = randomITensor(Float64, IndexSet())
 
-function combiner(inds::IndexSet;
+function combiner(inds::Indices;
                   kwargs...)
   tags = get(kwargs, :tags, "CMB,Link")
   new_ind = Index(prod(dims(inds)), tags)
@@ -957,9 +939,6 @@ end
 
 combiner(inds::Index...;
          kwargs...) = combiner(IndexSet(inds...); kwargs...)
-
-combiner(inds::Tuple{Vararg{Index}};
-         kwargs...) = combiner(inds...; kwargs...)
 
 # Special case when no indices are combined (useful for generic code)
 function combiner(; kwargs...)
@@ -983,23 +962,31 @@ function dag(T::ITensor; always_copy=false)
 end
 
 """
-    permute(T::ITensors, inds)
-    permute(T::ITensors, inds::Index...)
+    permute(T::ITensors, inds; always_copy::Bool = false)
+    permute(T::ITensors, inds::Index...; always_copy::Bool = false)
 
 Return a new ITensor T with indices permuted according
 to the input indices inds. The storage of the ITensor
 is permuted accordingly.
+
+If `always_copy = false`, it avoids copying data if possible.
+Therefore, it may return a view. Use `always_copy = true`
+if you never want it to return an ITensor with a view
+of the original ITensor.
 """
 function permute(T::ITensor{N},
-                 new_inds) where {N}
+                 new_inds; always_copy::Bool = false) where {N}
   perm = NDTensors.getperm(new_inds, inds(T))
+  if !always_copy && NDTensors.is_trivial_permutation(perm)
+    return T
+  end
   Tp = permutedims(tensor(T), perm)
   return itensor(Tp)::ITensor{N}
 end
 
 permute(T::ITensor,
-        inds::Index...) = permute(T,
-                                  IndexSet(inds...))
+        inds::Index...; vargs...) = permute(T,
+                                            IndexSet(inds...); vargs...)
 
 Base.:*(T::ITensor, x::Number) = itensor(x*tensor(T))
 
@@ -1085,7 +1072,7 @@ end
 LinearAlgebra.dot(A::ITensor, B::ITensor) = (dag(A)*B)[]
 
 """
-    exp(A::ITensor, Lis::IndexSet; hermitian = false)
+    exp(A::ITensor, Lis; ishermitian = false)
 
 Compute the exponential of the tensor `A` by treating it as a matrix ``A_{lr}`` with
 the left index `l` running over all indices in `Lis` and `r` running over all
@@ -1232,6 +1219,37 @@ NDTensors.blockoffsets(T::ITensor) = blockoffsets(tensor(T))
 
 flux(T::ITensor, args...) = flux(inds(T), args...)
 
+"""
+    flux(T::ITensor)
+
+Returns the flux of the ITensor.
+
+If the ITensor is empty or it has no QNs, returns `nothing`.
+"""
+function flux(T::ITensor)
+  (!hasqns(T) || isempty(T)) && return nothing
+  @debug checkflux(T)
+  bofs = blockoffsets(T)
+  block1 = nzblock(bofs, 1)
+  return flux(T, block1)
+end
+
+function checkflux(T::ITensor, flux_check)
+  for b in nzblocks(T)
+    fluxTb = flux(T, b)
+    if fluxTb != flux_check
+      error("Block $b has flux $fluxTb that is inconsistent with the desired flux $flux_check")
+    end
+  end
+  return nothing
+end
+
+function checkflux(T::ITensor)
+  b1 = first(nzblocks(T))
+  fluxTb1 = flux(T, b1)
+  return checkflux(T, fluxTb1)
+end
+
 function NDTensors.addblock!(T::ITensor,
                              args...)
   (!isnothing(flux(T)) && flux(T) ≠ flux(T, args...)) && 
@@ -1250,28 +1268,24 @@ An ITensor with `Empty` storage always returns `true`.
 """
 Base.isempty(T::ITensor) = isempty(tensor(T))
 
-"""
-    flux(T::ITensor)
-
-Returns the flux of the ITensor.
-
-If the ITensor is empty or it has no QNs, returns `nothing`.
-"""
-function flux(T::ITensor)
-  (!hasqns(T) || isempty(T)) && return nothing
-  bofs = blockoffsets(T)
-  block1 = nzblock(bofs, 1)
-  return flux(T, block1)
-end
-
 
 #######################################################################
 #
 # Developer functions
 #
 
-# TODO: make versions where the element type can be specified (for type
-# inference).
+"""
+    array(T::ITensor)
+
+Given an ITensor `T`, returns
+an Array with a copy of the ITensor's elements,
+or a view in the case the the ITensor's storage is Dense.
+The ordering of the elements in the Array, in
+terms of which Index is treated as the row versus
+column, depends on the internal layout of the ITensor.
+*Therefore this method is intended for developer use
+only and not recommended for use in ITensor applications.*
+"""
 NDTensors.array(T::ITensor) = array(tensor(T))
 
 """
@@ -1279,7 +1293,7 @@ NDTensors.array(T::ITensor) = array(tensor(T))
 
 Given an ITensor `T` with two indices, returns
 a Matrix with a copy of the ITensor's elements,
-or a view in the case the the ITensor's storage is Dense.
+or a view in the case the ITensor's storage is Dense.
 The ordering of the elements in the Matrix, in
 terms of which Index is treated as the row versus
 column, depends on the internal layout of the ITensor.
@@ -1290,6 +1304,13 @@ function NDTensors.matrix(T::ITensor{2})
   return array(tensor(T))
 end
 
+"""
+    vector(T::ITensor)
+
+Given an ITensor `T` with one index, returns
+a Vector with a copy of the ITensor's elements,
+or a view in the case the ITensor's storage is Dense.
+"""
 function NDTensors.vector(T::ITensor{1})
   return array(tensor(T))
 end
@@ -1302,15 +1323,19 @@ end
 function Base.summary(io::IO,
                       T::ITensor)
   print(io,"ITensor ord=$(order(T))")
-  for i = 1:order(T)
-    if hasqns(inds(T)[i])
-      startstr = (i==1) ? "\n" : ""
-      print(io,startstr,inds(T)[i])
-    else
-      print(io," ",inds(T)[i])
+  if hasqns(T)
+    println(io)
+    for i in 1:order(T)
+      print(io, inds(T)[i])
+      println(io)
     end
+  else
+    for i in 1:order(T)
+      print(io, " ", inds(T)[i])
+    end
+    println(io)
   end
-  print(io," \n",typeof(store(T)))
+  print(io, typeof(store(T)))
 end
 
 function Base.summary(io::IO,
@@ -1324,10 +1349,8 @@ end
 # that emphasizes the missing elements
 function Base.show(io::IO,
                    T::ITensor)
-  #summary(io,T)
   println(io,"ITensor ord=$(order(T))")
-  println(io)
-  Base.show(io,MIME"text/plain"(),tensor(T))
+  Base.show(io, MIME"text/plain"(), tensor(T))
 end
 
 function Base.show(io::IO,

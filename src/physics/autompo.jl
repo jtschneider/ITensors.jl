@@ -115,11 +115,32 @@ end
 ## AutoMPO                 #
 ############################
 
+"""
+An AutoMPO stores a collection of
+operator terms, to be later summed
+together into an MPO by calling
+the function `MPO` on the AutoMPO object. 
+Each term is a product of local operators
+specified by names such as "Sz" or "N",
+times an optional coefficient which
+can be real or complex.
+
+Which local operator names are available
+is determined by the function `op`
+associated with the TagType defined by
+special Index tags, such as "S=1/2","S=1",
+"Fermion", and "Electron".
+"""
 struct AutoMPO
   data::Vector{MPOTerm}
   AutoMPO(terms::Vector{MPOTerm}) = new(terms)
 end
 
+"""
+    AutoMPO()
+    
+Construct an empty AutoMPO
+"""
 AutoMPO() = AutoMPO(Vector{MPOTerm}())
 
 data(ampo::AutoMPO) = ampo.data
@@ -131,12 +152,59 @@ Base.copy(ampo::AutoMPO) = AutoMPO(copy(data(ampo)))
 
 Base.size(ampo::AutoMPO) = size(data(ampo))
 
-function add!(ampo::AutoMPO,
-              op::String, i::Int)
-  push!(data(ampo),MPOTerm(1.0,op,i))
-  return
-end
 
+"""
+    add!(ampo::AutoMPO,
+         op1::String, i1::Int)
+
+    add!(ampo::AutoMPO,
+         coef::Number,
+         op1::String, i1::Int)
+
+    add!(ampo::AutoMPO,
+         op1::String, i1::Int,
+         op2::String, i2::Int,
+         ops...)
+
+    add!(ampo::AutoMPO,
+         coef::Number,
+         op1::String, i1::Int,
+         op2::String, i2::Int,
+         ops...)
+
+    +(ampo:AutoMPO, term::Tuple)
+
+Add a single- or multi-site operator 
+term to the AutoMPO `ampo`. Each operator
+is specified by a name (String) and a
+site number (Int). The second version
+accepts a real or complex coefficient.
+
+The `+` operator version of this function
+accepts a tuple with entries either
+(String,Int,String,Int,...) or
+(Number,String,Int,String,Int,...)
+where these tuple values are the same
+as valid inputs to the `add!` function.
+For inputting a very large number of
+terms (tuples) to an AutoMPO, consider
+using the broadcasted operator `.+=`
+which avoids reallocating the AutoMPO
+after each addition.
+
+# Examples
+```julia
+ampo = AutoMPO()
+
+add!(ampo,"Sz",2,"Sz",3)
+
+ampo += ("Sz",3,"Sz",4)
+
+ampo += (0.5,"S+",4,"S-",5)
+
+ampo .+= (0.5,"S+",5,"S-",6)
+```
+"""
 function add!(ampo::AutoMPO,
               coef::Number,
               op::String, i::Int)
@@ -144,12 +212,8 @@ function add!(ampo::AutoMPO,
   return
 end
 
-function add!(ampo::AutoMPO,
-              op1::String, i1::Int,
-              op2::String, i2::Int)
-  push!(data(ampo),MPOTerm(1.0,op1,i1,op2,i2))
-  return
-end
+add!(ampo::AutoMPO,op::String, i::Int) = add!(ampo,1.0,op,i)
+
 
 function add!(ampo::AutoMPO,
               coef::Number,
@@ -158,6 +222,10 @@ function add!(ampo::AutoMPO,
   push!(data(ampo),MPOTerm(coef,op1,i1,op2,i2))
   return
 end
+
+add!(ampo::AutoMPO,
+     op1::String, i1::Int,
+     op2::String, i2::Int) = add!(ampo,1.0,op1,i1,op2,i2)
 
 function add!(ampo::AutoMPO,
               coef::Number,
@@ -173,6 +241,24 @@ add!(ampo::AutoMPO,
      op2::String, i2::Int,
      ops...) = add!(ampo, 1.0, op1, i1, op2, i2, ops...)
 
+"""
+    subtract!(ampo::AutoMPO,
+              op1::String, i1::Int,
+              op2::String, i2::Int,
+              ops...)
+
+    subtract!(ampo::AutoMPO,
+              coef::Number,
+              op1::String, i1::Int,
+              op2::String, i2::Int,
+              ops...)
+
+Subtract a multi-site operator term
+from the AutoMPO `ampo`. Each operator
+is specified by a name (String) and a
+site number (Int). The second version
+accepts a real or complex coefficient.
+"""
 subtract!(ampo::AutoMPO,
           op1::String, i1::Int,
           op2::String, i2::Int,
@@ -785,6 +871,29 @@ function sorteachterm(ampo::AutoMPO, sites)
   return ampo
 end
 
+"""
+    MPO(ampo::AutoMPO,sites::Vector{<:Index};kwargs...)
+       
+Convert an AutoMPO object `ampo` to an
+MPO, with indices given by `sites`. The
+resulting MPO will have the indices
+`sites[1], sites[1]', sites[2], sites[2]'`
+etc. The conversion is done by an algorithm
+that compresses the MPO resulting from adding
+the AutoMPO terms together, often achieving
+the minimum possible bond dimension.
+
+# Examples
+```julia
+ampo = AutoMPO()
+ampo += ("Sz",1,"Sz",2)
+ampo += ("Sz",2,"Sz",3)
+ampo += ("Sz",3,"Sz",4)
+
+sites = siteinds("S=1/2",4)
+H = MPO(ampo,sites)
+```
+"""
 function MPO(ampo::AutoMPO,
              sites::Vector{<:Index};
              kwargs...)::MPO

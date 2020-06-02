@@ -63,6 +63,19 @@ const maxQNs = 4
 const QNStorage = SVector{maxQNs,QNVal}
 const MQNStorage = MVector{maxQNs,QNVal}
 
+"""
+A QN object stores a collection of up to four
+named values such as ("Sz",1) or ("N",0). 
+These values can include a third integer "m"
+which makes them obey addition modulo m, for 
+example ("P",1,2) for a value obeying addition mod 2.
+(The default is regular integer addition).
+
+Adding or subtracting pairs of QN objects performs
+addition and subtraction element-wise on each of
+the named values. If a name is missing from the 
+collection, its value is treated as zero.
+"""
 struct QN
   data::QNStorage
 
@@ -91,6 +104,19 @@ function Base.hash(obj::QN, h::UInt)
 end
 
 
+"""
+    QN(qvs...)
+
+Construct a QN from a set of up to four
+named value tuples.
+
+Examples
+```julia
+q = QN(("Sz",1))
+q = QN(("N",1),("Sz",-1))
+q = QN(("P",0,2),("Sz",0)).
+```
+"""
 function QN(qvs...)
   m = MQNStorage(ntuple(_->ZeroVal,Val(maxQNs)))
   for (n,qv) in enumerate(qvs)
@@ -106,7 +132,22 @@ function QN(qvs...)
   return QN(QNStorage(m))
 end
 
+"""
+    QN(name,val::Int,modulus::Int=1)
+
+Construct a QN with a single named value
+by providing the name, value, and optional
+modulus.
+"""
 QN(name,val::Int,modulus::Int=1) = QN((name,val,modulus))
+
+"""
+    QN(val::Int,modulus::Int=1)
+
+Construct a QN with a single unnamed value
+(equivalent to the name being the empty string)
+with optional modulus.
+"""
 QN(val::Int,modulus::Int=1) = QN(("",val,modulus))
 
 data(qn::QN) = qn.data
@@ -119,11 +160,24 @@ Base.lastindex(qn::QN) = length(qn)
 
 isactive(qn::QN) = isactive(qn[1])
 
+function nactive(q::QN)
+  for n=1:maxQNs
+    !isactive(q[n]) && (return n-1)
+  end
+  return maxQNs
+end
+
 function Base.iterate(qn::QN,state::Int=1)
   (state > length(qn)) && return nothing
   return (qn[state],state+1)
 end
 
+"""
+    val(q::QN,name)
+
+Get the value within the QN q
+corresponding to the string `name`
+"""
 function val(q::QN,name_)
   sname = SmallString(name_)
   for n=1:maxQNs
@@ -132,6 +186,12 @@ function val(q::QN,name_)
   return 0
 end
 
+"""
+    modulus(q::QN,name)
+
+Get the modulus within the QN q
+corresponding to the string `name`
+"""
 function modulus(q::QN,name_)
   sname = SmallString(name_)
   for n=1:maxQNs
@@ -140,6 +200,13 @@ function modulus(q::QN,name_)
   return 0
 end
 
+"""
+    zero(q::QN)
+
+Returns a QN object containing
+the same names as q, but with
+all values set to zero.
+"""
 function Base.zero(qn::QN)
   mqn = MQNStorage(undef)
   for i in 1:length(mqn)
@@ -290,20 +357,19 @@ end
 
 function Base.show(io::IO,q::QN)
   print(io,"QN(")
-  for n=1:maxQNs
+  Na = nactive(q)
+  for n=1:Na
     v = q[n]
-    !isactive(v) && break
     n > 1 && print(io,",")
-    if name(v)==SmallString("")
-      print(io,"($(val(v))")
-    else
-      print(io,"(\"$(name(v))\",$(val(v))")
+    Na > 1 && print(io,"(")
+    if name(v) != SmallString("") 
+      print(io,"\"$(name(v))\",")
     end
+    print(io,"$(val(v))")
     if modulus(v) != 1
-      print(io,",$(modulus(v)))")
-    else
-      print(io,")")
+      print(io,",$(modulus(v))")
     end
+    Na > 1 && print(io,")")
   end
   print(io,")")
 end

@@ -11,17 +11,22 @@ MPO
 
 ```@docs
 MPS(::Int)
-MPS(::Type{<:Number}, ::Any)
-randomMPS
-productMPS
+MPS(::Type{<:Number}, ::Vector{<:Index})
+randomMPS(sites::Vector{<:Index}; linkdim=1)
+randomMPS(::Type{<:Number}, sites::Vector{<:Index}; linkdim=1)
+randomMPS(sites::Vector{<:Index}, state; linkdim=1)
+productMPS(::Vector{<:Index},states)
+productMPS(::Type{<:Number},::Vector{<:Index},states)
+productMPS(::Vector{<:IndexVal})
+productMPS(::Type{<:Number}, ::Vector{<:IndexVal})
 ```
 
 ## MPO Constructors
 
 ```@docs
 MPO(::Int)
-MPO(::Any, ::Vector{String})
-MPO(::Any, ::String)
+MPO(::Type{<:Number}, ::Vector{<:Index}, ::Vector{String})
+MPO(::Type{<:Number}, ::Vector{<:Index}, ::String)
 ```
 
 ## Properties
@@ -29,6 +34,7 @@ MPO(::Any, ::String)
 ```@docs
 length(::ITensors.AbstractMPS)
 maxlinkdim(::ITensors.AbstractMPS)
+linkind(::ITensors.AbstractMPS,::Int)
 ```
 
 ## Priming and tagging
@@ -65,9 +71,11 @@ sample!(::MPS)
 ## Algebra Operations
 
 ```@docs
-dot(::MPS, ::MPS)
+dot(::MPST, ::MPST) where {MPST <: ITensors.AbstractMPS}
+logdot(::MPST, ::MPST) where {MPST <: ITensors.AbstractMPS}
+norm(::ITensors.AbstractMPS)
+lognorm(::ITensors.AbstractMPS)
 +(::MPS, ::MPS)
-+(::MPO, ::MPO)
 *(::MPO, ::MPS)
 ```
 

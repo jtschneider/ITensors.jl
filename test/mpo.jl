@@ -3,8 +3,9 @@ using ITensors,
 
 include("util.jl")
 
-function basicRandomMPO(N::Int, sites; dim=4)
+function basicRandomMPO(sites; dim=4)
   M = MPO(sites)
+  N = length(M)
   links = [Index(dim,"n=$(n-1),Link") for n=1:N+1]
   for n=1:N
     M[n] = randomITensor(links[n],sites[n],sites[n]',links[n+1])
@@ -46,6 +47,36 @@ end
     @test ⋅(phi, K, phi) ≈ orig_inner
   end
 
+  @testset "norm MPO" begin
+    A = randomMPO(sites)
+    Adag = ITensors.sim_linkinds(dag(A))
+    A² = ITensor(1)
+    for j = 1:N
+      A² *= Adag[j] * A[j]
+    end
+    @test A²[] ≈ inner(A, A)
+    @test sqrt(A²[]) ≈ norm(A)
+    for j in 1:N
+      A[j] ./= j
+    end
+    @test norm(A) ≈ 1 / factorial(N)
+  end
+
+  @testset "lognorm MPO" begin
+    A = randomMPO(sites)
+    for j in 1:N
+      A[j] .*= j
+    end
+    Adag = ITensors.sim_linkinds(dag(A))
+    A² = ITensor(1)
+    for j = 1:N
+      A² *= Adag[j] * A[j]
+    end
+    @test A²[] ≈ A ⋅ A
+    @test 0.5 * log(A²[]) ≈ lognorm(A)
+    @test lognorm(A) ≈ log(factorial(N))
+  end
+
   @testset "inner <y|A|x>" begin
     phi = randomMPS(sites)
     K = randomMPO(sites)
@@ -81,9 +112,9 @@ end
         mpo_tensors[N] = randomITensor(mpo_link_inds[N-1], sites[N], sites[N]')
         mps_tensors[N] = randomITensor(mps_link_inds[N-1], sites[N])
         mps_tensors2[N] = randomITensor(mps_link_inds[N-1], sites[N])
-        K   = MPO(N, mpo_tensors, 0, N+1)
-        psi = MPS(N, mps_tensors, 0, N+1)
-        phi = MPS(N, mps_tensors2, 0, N+1)
+        K   = MPO(mpo_tensors, 0, N+1)
+        psi = MPS(mps_tensors, 0, N+1)
+        phi = MPS(mps_tensors2, 0, N+1)
         orthogonalize!(psi, 1; maxdim=link_dim)
         orthogonalize!(K, 1; maxdim=link_dim)
         orthogonalize!(phi, 1; normalize=true, maxdim=link_dim)
@@ -177,9 +208,9 @@ end
       mpo_tensors[N] = randomITensor(mpo_link_inds[N-1], sites[N], sites[N]')
       mps_tensors[N] = randomITensor(mps_link_inds[N-1], sites[N])
       mps_tensors2[N] = randomITensor(mps_link_inds[N-1], sites[N])
-      K   = MPO(N, mpo_tensors, 0, N+1)
-      psi = MPS(N, mps_tensors, 0, N+1)
-      phi = MPS(N, mps_tensors2, 0, N+1)
+      K   = MPO(mpo_tensors, 0, N+1)
+      psi = MPS(mps_tensors, 0, N+1)
+      phi = MPS(mps_tensors2, 0, N+1)
       orthogonalize!(psi, 1; maxdim=link_dim)
       orthogonalize!(K, 1; maxdim=link_dim)
       orthogonalize!(phi, 1; normalize=true, maxdim=link_dim)
@@ -201,8 +232,8 @@ end
     @test inner(psi, sum([k_psi, l_psi])) ≈ dot(psi, M, psi) atol=5e-3
     for dim in 2:4
         shsites = siteinds("S=1/2",N)
-        K = basicRandomMPO(N, shsites; dim=dim)
-        L = basicRandomMPO(N, shsites; dim=dim)
+        K = basicRandomMPO(shsites; dim=dim)
+        L = basicRandomMPO(shsites; dim=dim)
         M = K + L
         @test length(M) == N
         psi = randomMPS(shsites)
@@ -283,7 +314,7 @@ end
   @test length(O) == N # just make sure this works
 
   @test_throws ArgumentError randomMPO(sites, 2)
-  @test isnothing(linkind(MPO(N, fill(ITensor(), N), 0, N + 1), 1))
+  @test isnothing(linkind(MPO(fill(ITensor(), N), 0, N + 1), 1))
 end
 
 nothing

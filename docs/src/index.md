@@ -1,10 +1,8 @@
 # Introduction
 
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://itensor.github.io/ITensors.jl/dev/) [![Tests](https://github.com/ITensor/ITensors.jl/workflows/Tests/badge.svg)](https://github.com/ITensor/ITensors.jl/actions?query=workflow%3ATests) [![Build Status](https://travis-ci.org/ITensor/ITensors.jl.svg?branch=master)](https://travis-ci.org/ITensor/ITensors.jl) [![codecov](https://codecov.io/gh/ITensor/ITensors.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ITensor/ITensors.jl)
-
-PLEASE NOTE THIS IS PRE-RELEASE SOFTWARE FOR PREVIEW PURPOSES ONLY
-
-THIS SOFTWARE IS SUBJECT TO BREAKING CHANGES AND NOT YET OFFICIALLY SUPPORTED
+| **Documentation**                                                               | **Build Status**                                                                                |
+|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://itensor.github.io/ITensors.jl/stable/) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://itensor.github.io/ITensors.jl/dev/) | [![Tests](https://github.com/ITensor/ITensors.jl/workflows/Tests/badge.svg)](https://github.com/ITensor/ITensors.jl/actions?query=workflow%3ATests) [![codecov](https://codecov.io/gh/ITensor/ITensors.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ITensor/ITensors.jl) |
 
 ITensors is a library for rapidly creating correct and efficient
 tensor network algorithms. 
@@ -21,25 +19,35 @@ the DMRG algorithm.
 
 Development of ITensor is supported by the Flatiron Institute, a division of the Simons Foundation.
 
-## Steps to Install Pre-Release Version
 
-1. Install the latest version of Julia: https://julialang.org/downloads/
+## Installation
 
-2. Run the `julia` command to begin an interactive Julia session (entering the so-called REPL). 
+The ITensors package can be installed with the Julia package manager.
+From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
-3. Type `]` on your keyboard to enter Julia's interactive package manager.
+```
+~ julia
+```
 
-4. Run the command 
+```julia
+julia> ]
 
-       add https://github.com/ITensor/ITensors.jl
-    
-   The package system will update itself, then install some dependencies before finally installing ITensors.jl.
+pkg> add ITensors
+```
 
-5. Hit the backspace key to go back to the normal interactive Julia prompt, or type Ctrl+D to exit the Julia REPL.
+Or, equivalently, via the `Pkg` API:
 
-6. You can now do `using ITensors` to use the ITensor library in an interactive session, or run Julia code files (.jl files) which use ITensor, with some examples given below and in our examples folder. The test folder also has many examples of ITensor code you can run.
+```julia
+julia> import Pkg; Pkg.add("ITensors")
+```
+Please note that right now, ITensors.jl requires that you use Julia v1.4 or later (since we are using a feature that was introduced in Julia v1.4). We will work on supporting older minor versions.
 
-We recommend using ITensors.jl with Intel MKL in order to get the best possible performance. If you have not done so already, you can replace your current BLAS and LAPACK implementation with MKL by using the MKL.jl package. Please follow the instructions here: https://github.com/JuliaComputing/MKL.jl
+We recommend using ITensors.jl with Intel MKL in order to get the best possible performance. If you have not done so already, you can replace your current BLAS and LAPACK implementation with MKL by using the MKL.jl package. Please follow the instructions [here](https://github.com/JuliaComputing/MKL.jl).
+
+## Documentation
+
+- [**STABLE**](https://itensor.github.io/ITensors.jl/stable/) --  **documentation of the most recently tagged version.**
+- [**DEVEL**](https://itensor.github.io/ITensors.jl/dev/) -- *documentation of the in-development version.*
 
 ## Code Examples
 
@@ -60,6 +68,7 @@ let
   A = ITensor(i,j,k)
   B = ITensor(j,l)
 
+  # Set elements of A
   A[i=>1,j=>1,k=>1] = 11.1
   A[i=>2,j=>1,k=>2] = -21.2
   A[k=>1,i=>3,j=>1] = 31.1  # can provide Index values in any order

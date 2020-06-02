@@ -1,5 +1,8 @@
 
-const QNIndexSet{N} = IndexSet{N,QNIndex}
+const QNIndexSet{N} = IndexSet{N, QNIndex, NTuple{N, QNIndex}}
+
+const QNIndices{N} = Union{QNIndexSet{N},
+                           NTuple{N, QNIndex}}
 
 # Get a list of the non-zero blocks given a desired flux
 # TODO: make a fillqns(inds::IndexSet) function that makes all indices
@@ -28,4 +31,12 @@ function nzdiagblocks(qn::QN,
 end
 
 removeqns(is::QNIndexSet) = map(i -> removeqns(i), is)
+
+function Base.show(io::IO, is::QNIndexSet)
+  print(io,"IndexSet{$(length(is))} ")
+  for i in is
+    print(io, i)
+    println(io)
+  end
+end
 

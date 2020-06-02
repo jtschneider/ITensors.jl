@@ -391,6 +391,12 @@ end
   for I in CartesianIndices(T)
     @test A[I] == T[I]
   end
+
+  T = randomITensor(i)
+  A = Vector(T)
+  for I in CartesianIndices(T)
+    @test A[I] == T[I]
+  end
 end
 
 @testset "Test isapprox for ITensors" begin
@@ -406,6 +412,24 @@ end
   A = permute(A,j,i)
   @test A≈B
   @test B≈A
+end
+
+@testset "permute, always_copy = false" begin
+  i = Index(2)
+  A = ITensor(i, i')
+  Ap = permute(A, i, i')
+  A[i => 1, i' => 1] = 1
+  @test A[i => 1, i' => 1] == 1
+  @test Ap[i => 1, i' => 1] == 1
+end
+
+@testset "permute, always_copy = true" begin
+  i = Index(2)
+  A = ITensor(i, i')
+  Ap = permute(A, i, i'; always_copy = true)
+  A[i => 1, i' => 1] = 1
+  @test A[i => 1, i' => 1] == 1
+  @test Ap[i => 1, i' => 1] == 0
 end
 
 @testset "ITensor tagging and priming" begin
@@ -641,7 +665,7 @@ end
     A = ITensor(x)
     @test x==scalar(A)
     A = ITensor(SType,i,j,k)
-    @test_throws MethodError scalar(A)
+    @test_throws DimensionMismatch scalar(A)
   end
   @testset "Test norm(ITensor)" begin
     A = randomITensor(SType,i,j,k)

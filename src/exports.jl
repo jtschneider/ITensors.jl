@@ -11,11 +11,6 @@ export
   entropy,
   truncerror,
 
-# arrow.jl
-  In,
-  Neither,
-  Out,
-
 # decomp.jl
   eigen,
   factorize,
@@ -163,6 +158,9 @@ export
   add,
   contract,
   dag!,
+  logdot,
+  loginner,
+  lognorm,
 
 # mps/mpo.jl
   # Types
@@ -210,6 +208,8 @@ export
   lproj,
   product,
   rproj,
+  noiseterm,
+  position!,
 
 # mps/projmposum.jl
   ProjMPOSum,
@@ -237,7 +237,7 @@ export
 
 # physics/tag_types.jl
   TagType,
-  TagType_str,
+  @TagType_str,
   op,
   state,
   has_fermion_string,
@@ -264,8 +264,8 @@ export
   isactive,
   isfermionic,
   modulus,
+  val,
 
 # qn/qnindex.jl
   flux,
   hasqns
-
