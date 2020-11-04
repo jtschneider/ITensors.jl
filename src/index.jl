@@ -125,12 +125,28 @@ Obtain the TagSet of an Index.
 """
 tags(i::Index) = i.tags
 
+commontags(is::Index...) = commontags(tags.(is)...)
+
 """
     plev(i::Index)
 
 Obtain the prime level of an Index.
 """
 plev(i::Index) = i.plev
+
+"""
+    not(n::Int)
+
+Return Not{Int}(n).
+"""
+not(pl::Int) = Not(pl)
+
+"""
+    not(::IDType)
+
+Return Not{IDType}(n).
+"""
+not(id::IDType) = Not(id)
 
 """
     ==(i1::Index, i1::Index)
@@ -140,7 +156,9 @@ then the prime levels are compared, and finally the
 tags are compared.
 """
 function Base.:(==)(i1::Index, i2::Index)
-  return id(i1) == id(i2) && tags(i1) == tags(i2) && plev(i1) == plev(i2)
+  return id(i1) == id(i2) &&
+         plev(i1) == plev(i2) &&
+         tags(i1) == tags(i2)
 end
 
 # This is so that when IndexSets are converted
@@ -155,11 +173,7 @@ end
 
 Create a copy of index `i` with identical `id`, `dim`, `dir` and `tags`.
 """
-Base.copy(i::Index) = Index(id(i),
-                            copy(space(i)),
-                            dir(i),
-                            tags(i),
-                            plev(i))
+copy(i::Index) = Index(id(i), copy(space(i)), dir(i), tags(i), plev(i))
 
 """
     sim(i::Index; tags = tags(i), plev = plev(i), dir = dir(i))
@@ -167,28 +181,15 @@ Base.copy(i::Index) = Index(id(i),
 Produces an `Index` with the same properties (dimension or QN structure)
 but with a new `id`.
 """
-sim(i::Index;
-    tags=copy(tags(i)),
-    plev=plev(i),
-    dir=dir(i)) = Index(rand(IDType),
-                        copy(space(i)),
-                        dir,
-                        tags,
-                        plev)
-
-# Used for internal use in NDTensors
-NDTensors.sim(i::Index) = sim(i)
+sim(i::Index; tags = copy(tags(i)), plev = plev(i), dir = dir(i)) =
+  Index(rand(IDType), copy(space(i)), dir, tags, plev)
 
 """
     dag(i::Index)
 
 Copy an index `i` and reverse its direction.
 """
-dag(i::Index) = Index(id(i),
-                      copy(space(i)),
-                      -dir(i),
-                      tags(i),
-                      plev(i))
+dag(i::Index) = Index(id(i), copy(space(i)), -dir(i), tags(i), plev(i))
 
 # For internal use in NDTensors
 NDTensors.dag(i::Index) = dag(i)
@@ -236,7 +237,23 @@ false
 """
 hasplev(i::Index, pl::Int) = plev(i) == pl
 
+"""
+    hasplev(pl::Int)
+
+Returns an anonymous function `x -> hasplev(x, pl)`.
+
+Useful for passing to functions like `map`.
+"""
 hasplev(pl::Int) = x -> hasplev(x, pl)
+
+"""
+    hasind(i::Index)
+
+Returns an anonymous function `x -> hasind(x, i)`.
+
+Useful for passing to functions like `map`.
+"""
+hasind(s::Index) = x -> hasind(x, s)
 
 """
     hasid(i::Index, id::ITensors.IDType)
@@ -302,7 +319,8 @@ specified tags added to the existing ones.
 The `ts` argument can be a comma-separated 
 string of tags or a TagSet.
 """
-addtags(i::Index, ts) = settags(i, addtags(tags(i), ts))
+addtags(i::Index, ts) =
+  settags(i, addtags(tags(i), ts))
 
 """
     removetags(i::Index, ts)
@@ -311,20 +329,36 @@ Return a copy of Index `i` with the
 specified tags removed. The `ts` argument
 can be a comma-separated string of tags or a TagSet.
 """
-removetags(i::Index, ts) = settags(i, removetags(tags(i), ts))
+removetags(i::Index, ts) =
+  settags(i, removetags(tags(i), ts))
 
 """
     replacetags(i::Index, tsold, tsnew)
+
+    replacetags(i::Index, tsold => tsnew)
 
 If the tag set of `i` contains the tags specified by `tsold`,
 replaces these with the tags specified by `tsnew`, preserving
 any other tags. The arguments `tsold` and `tsnew` can be
 comma-separated strings of tags, or TagSet objects.
+
+# Examples
+```jldoctest; filter=r"id=[0-9]{1,3}"
+julia> i = Index(2; tags = "l,x", plev = 1)
+(dim=2|id=83|"l,x")'
+
+julia> replacetags(i, "l", "m")
+(dim=2|id=83|"m,x")'
+
+julia> replacetags(i, "l" => "m")
+(dim=2|id=83|"m,x")'
+```
 """
-replacetags(i::Index,
-            tsold,
-            tsnew) = settags(i,
-                             replacetags(tags(i), tsold, tsnew))
+replacetags(i::Index, tsold, tsnew) =
+  settags(i, replacetags(tags(i), tsold, tsnew))
+
+replacetags(i::Index, rep_ts::Pair) =
+  replacetags(i, rep_ts...)
 
 """
     prime(i::Index, plinc::Int = 1)
@@ -377,9 +411,13 @@ function Base.iterate(i::Index, state::Int = 1)
 end
 
 # This is a trivial definition for use in NDTensors
-NDTensors.outer(i::Index; tags = "",
-                          plev = 0) = sim(i; tags = tags,
-                                             plev = plev)
+NDTensors.outer(i::Index;
+                dir = dir(i),
+                tags = "",
+                plev::Int = 0) =
+  sim(i; tags = tags,
+         plev = plev,
+         dir = dir)
 
 # This is for use in NDTensors
 function NDTensors.outer(i1::Index, i2::Index; tags = "")
@@ -549,6 +587,14 @@ function HDF5.write(parent::Union{HDF5File, HDF5Group},
   write(g, "dir", Int(dir(I)))
   write(g, "tags", tags(I))
   write(g, "plev", plev(I))
+  if typeof(space(I)) == Int
+    attrs(g)["space_type"] = "Int"
+  elseif typeof(space(I)) == QNBlocks
+    attrs(g)["space_type"] = "QNBlocks"
+    write(g,"space",space(I))
+  else
+    error("Index space type not recognized")
+  end
 end
 
 function HDF5.read(parent::Union{HDF5File,HDF5Group},
@@ -563,6 +609,15 @@ function HDF5.read(parent::Union{HDF5File,HDF5Group},
   dir = Arrow(read(g,"dir"))
   tags = read(g,"tags",TagSet)
   plev = read(g,"plev")
-  return Index(id,dim,dir,tags,plev)
+  space_type = "Int"
+  if exists(attrs(g),"space_type")
+    space_type = read(attrs(g)["space_type"])
+  end
+  if space_type == "Int"
+    space = dim
+  elseif space_type == "QNBlocks"
+    space = read(g,"space",QNBlocks)
+  end
+  return Index(id,space,dir,tags,plev)
 end
 

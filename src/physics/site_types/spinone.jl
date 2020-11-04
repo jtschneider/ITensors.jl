@@ -1,110 +1,157 @@
 
-const SpinOneSite = Union{TagType"S=1", TagType"SpinOne"}
-
-function siteinds(::SpinOneSite,
-                  N::Int; kwargs...)
-  conserve_qns = get(kwargs,:conserve_qns,false)
-  conserve_sz = get(kwargs,:conserve_sz,conserve_qns)
+function space(::SiteType"S=1";
+               conserve_qns = false,
+               conserve_sz = conserve_qns,
+               qnname_sz = "Sz")
   if conserve_sz
-    up = QN("Sz",+2) => 1
-    z0 = QN("Sz", 0) => 1
-    dn = QN("Sz",-2) => 1
-    return [Index(up,z0,dn;tags="Site,S=1,n=$n") for n=1:N]
+    return [QN(qnname_sz,+2)=>1,
+            QN(qnname_sz,0)=>1,
+            QN(qnname_sz,-2)=>1]
   end
-  return [Index(3,"Site,S=1,n=$n") for n=1:N]
+  return 3
 end
 
-function state(::SpinOneSite,
-               st::AbstractString)
-  if st == "Up" || st == "↑"
-    return 1
-  elseif st == "Z0" || st == "0"
-    return 2
-  elseif st == "Dn" || st == "↓"
-    return 3
-  end
-  throw(ArgumentError("State string \"$st\" not recognized for SpinOne site"))
-  return 0
+state(::SiteType"S=1",::StateName"Up") = 1
+state(::SiteType"S=1",::StateName"Z0") = 2
+state(::SiteType"S=1",::StateName"Dn") = 3
+
+state(st::SiteType"S=1",::StateName"↑") = state(st,StateName("Up"))
+state(st::SiteType"S=1",::StateName"0") = state(st,StateName("Z0"))
+state(st::SiteType"S=1",::StateName"↓") = state(st,StateName("Dn"))
+
+
+function op!(Op::ITensor,
+             ::OpName"Sz",
+             ::SiteType"S=1",
+             s::Index)
+  Op[s'=>1,s=>1] = +1.0
+  Op[s'=>3,s=>3] = -1.0
 end
 
-function op(::SpinOneSite,
-            s::Index,
-            opname::AbstractString)::ITensor
-  Up = s(1)
-  UpP = s'(1)
-  Z0 = s(2)
-  Z0P = s'(2)
-  Dn = s(3)
-  DnP = s'(3)
- 
-  Op = emptyITensor(s',dag(s))
+op!(Op::ITensor,
+    ::OpName"Sᶻ",
+    t::SiteType"S=1",
+    s::Index) = op!(Op, OpName("Sz"), t, s)
 
-  if opname == "S⁺" || opname == "Splus" || opname == "S+"
-    Op[Z0P, Dn] = √2 
-    Op[UpP, Z0] = √2 
-  elseif opname == "S⁻" || opname == "Sminus" || opname == "S-"
-    Op[Z0P, Up] = √2 
-    Op[DnP, Z0] = √2 
-  elseif opname == "Sˣ" || opname == "Sx"
-    Op[Z0P, Up] = 1.0/√2
-    Op[UpP, Z0] = 1.0/√2
-    Op[DnP, Z0] = 1.0/√2
-    Op[Z0P, Dn] = 1.0/√2
-  elseif opname == "iSʸ" || opname == "iSy"
-    Op[Z0P, Up] = -1.0/√2
-    Op[UpP, Z0] = +1.0/√2
-    Op[DnP, Z0] = -1.0/√2
-    Op[Z0P, Dn] = +1.0/√2
-  elseif opname == "Sʸ" || opname == "Sy"
-    Op = complex(Op) 
-    Op[Z0P, Up] = +1.0/√2im
-    Op[UpP, Z0] = -1.0/√2im
-    Op[DnP, Z0] = +1.0/√2im
-    Op[Z0P, Dn] = -1.0/√2im
-  elseif opname == "Sᶻ" || opname == "Sz"
-    Op[UpP, Up] = 1.0 
-    Op[DnP, Dn] = -1.0
-  elseif opname == "Sᶻ²" || opname == "Sz2"
-    Op[UpP, Up] = 1.0 
-    Op[DnP, Dn] = 1.0
-  elseif opname == "Sˣ²" || opname == "Sx2"
-    Op[UpP, Up] = 0.5
-    Op[DnP, Up] = 0.5
-    Op[Z0P, Z0] = 1.0 
-    Op[UpP, Dn] = 0.5 
-    Op[DnP, Dn] = 0.5 
-  elseif opname == "Sʸ²" || opname == "Sy2"
-    Op[UpP, Up] = 0.5
-    Op[DnP, Up] = -0.5
-    Op[Z0P, Z0] = 1.0 
-    Op[UpP, Dn] = -0.5 
-    Op[DnP, Dn] = 0.5 
-  elseif opname == "projUp"
-    Op[UpP, Up] = 1.
-  elseif opname == "projZ0"
-    Op[Z0P, Z0] = 1.
-  elseif opname == "projDn"
-    Op[DnP, Dn] = 1.
-  elseif opname == "XUp"
-    xup = emptyITensor(ComplexF64,s)
-    xup[Up] = 0.5
-    xup[Z0] = im*√2
-    xup[Dn] = 0.5
-    return xup
-  elseif opname == "XZ0"
-    xZ0 = emptyITensor(ComplexF64,s)
-    xZ0[Up] = im*√2
-    xZ0[Dn] = -im*√2
-    return xZ0
-  elseif opname == "XDn"
-    xdn = emptyITensor(ComplexF64,s)
-    xdn[Up] = 0.5
-    xdn[Z0] = -im*√2
-    xdn[Dn] = 0.5
-    return xdn
-  else
-    throw(ArgumentError("Operator name '$opname' not recognized for SpinOneSite"))
-  end
-  return Op
+function op!(Op::ITensor,
+             ::OpName"S+",
+             ::SiteType"S=1",
+             s::Index)
+  Op[s'=>2,s=>3] = sqrt(2)
+  Op[s'=>1,s=>2] = sqrt(2)
 end
 
+op!(Op::ITensor,
+    ::OpName"S⁺",
+    t::SiteType"S=1",
+    s::Index) = op!(Op, OpName("S+"), t, s)
+
+op!(Op::ITensor,
+    ::OpName"Splus",
+    t::SiteType"S=1",
+    s::Index) = op!(Op, OpName("S+"), t, s)
+
+function op!(Op::ITensor,
+             ::OpName"S-",
+             ::SiteType"S=1",
+             s::Index)
+  Op[s'=>3,s=>2] = sqrt(2)
+  Op[s'=>2,s=>1] = sqrt(2)
+end
+
+op!(Op::ITensor,
+    ::OpName"S⁻",
+    t::SiteType"S=1",
+    s::Index) = op!(Op, OpName("S-"), t, s)
+
+op!(Op::ITensor,
+    ::OpName"Sminus",
+    t::SiteType"S=1",
+    s::Index) = op!(Op, OpName("S-"), t, s)
+
+function op!(Op::ITensor,
+             ::OpName"Sx",
+             ::SiteType"S=1",
+             s::Index)
+  Op[s'=>2,s=>1] = 1/sqrt(2)
+  Op[s'=>1,s=>2] = 1/sqrt(2)
+  Op[s'=>3,s=>2] = 1/sqrt(2)
+  Op[s'=>2,s=>3] = 1/sqrt(2)
+end
+
+op!(Op::ITensor,
+    ::OpName"Sˣ",
+    t::SiteType"S=1",
+    s::Index) = op!(Op, OpName("Sx"), t, s)
+
+function op!(Op::ITensor,
+             ::OpName"iSy",
+             ::SiteType"S=1",
+             s::Index)
+  Op[s'=>2,s=>1] = -1/sqrt(2)
+  Op[s'=>1,s=>2] = +1/sqrt(2)
+  Op[s'=>3,s=>2] = -1/sqrt(2)
+  Op[s'=>2,s=>3] = +1/sqrt(2)
+end
+
+op!(Op::ITensor,
+    ::OpName"iSʸ",
+    t::SiteType"S=1",
+    s::Index) = op!(Op, OpName("iSy"), t, s)
+
+function op!(Op::ITensor,
+             ::OpName"Sy",
+             ::SiteType"S=1",
+             s::Index)
+  complex!(Op)
+  Op[s'=>2,s=>1] = -1im/sqrt(2)
+  Op[s'=>1,s=>2] = +1im/sqrt(2)
+  Op[s'=>3,s=>2] = -1im/sqrt(2)
+  Op[s'=>2,s=>3] = +1im/sqrt(2)
+end
+
+op!(Op::ITensor,
+    ::OpName"Sʸ",
+    t::SiteType"S=1",
+    s::Index) = op!(Op, OpName("Sy"), t, s)
+
+function op!(Op::ITensor,
+             ::OpName"Sz2",
+             ::SiteType"S=1",
+             s::Index)
+  Op[s'=>1,s=>1] = +1.0
+  Op[s'=>3,s=>3] = +1.0
+end
+
+function op!(Op::ITensor,
+             ::OpName"Sx2",
+             ::SiteType"S=1",
+             s::Index)
+  Op[s'=>1,s=>1] = 0.5
+  Op[s'=>3,s=>1] = 0.5
+  Op[s'=>2,s=>2] = 1.0
+  Op[s'=>1,s=>3] = 0.5
+  Op[s'=>3,s=>3] = 0.5
+end
+
+function op!(Op::ITensor,
+             ::OpName"Sy2",
+             ::SiteType"S=1",
+             s::Index)
+  Op[s'=>1,s=>1] = +0.5
+  Op[s'=>3,s=>1] = -0.5
+  Op[s'=>2,s=>2] = +1.0
+  Op[s'=>1,s=>3] = -0.5
+  Op[s'=>3,s=>3] = +0.5
+end
+
+space(::SiteType"SpinOne"; kwargs...) =
+  space(SiteType("S=1");kwargs...)
+
+state(::SiteType"SpinOne",
+      st::AbstractString) = state(SiteType("S=1"), st)
+
+op!(Op::ITensor,
+    o::OpName,
+    ::SiteType"SpinOne",
+    s::Index) = op!(Op, o, SiteType("S=1"), s)

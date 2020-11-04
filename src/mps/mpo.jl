@@ -56,6 +56,7 @@ function MPO(::Type{ElT},
              sites::Vector{<:Index},
              ops::Vector{String}) where {ElT <: Number}
   N = length(sites)
+  N == 1 && return MPO([op(sites[1], ops[1])])
   its = Vector{ITensor}(undef, N)
   links = Vector{Index}(undef, N)
   for ii ∈ eachindex(sites)
@@ -116,6 +117,50 @@ function randomMPO(sites::Vector{<:Index}, m::Int=1)
   return M
 end
 
+MPO(A::ITensor, sites::Vector{ <: Index}; kwargs...) =
+  MPO(A, IndexSet.(prime.(sites), dag.(sites)); kwargs...)
+
+"""
+    MPO(A::MPS; kwargs...)
+
+For an MPS `|A>`, make the MPO `|A><A|`.
+Keyword arguments like `cutoff` can be used to
+truncate the resulting MPO.
+"""
+function MPO(A::MPS; kwargs...)
+  N = length(A)
+  M = MPO([A[n]' * dag(A[n]) for n in 1:N])
+  truncate!(M; kwargs...)
+  return M
+end
+
+"""
+    siteind(M::MPO, j::Int; plev = 0, kwargs...)
+
+Get the first site Index of the MPO found, by
+default with prime level 0. 
+"""
+siteind(M::MPO, j::Int; kwargs...) =
+  firstsiteind(M, j; plev = 0, kwargs...)
+
+"""
+    siteinds(M::MPO; kwargs...)
+
+Get a Vector of IndexSets the all of the site indices of M.
+"""
+siteinds(M::MPO; kwargs...) =
+  [siteinds(M, j; kwargs...) for j in 1:length(M)]
+
+"""
+    firstsiteinds(M::MPO; kwargs...)
+
+Get a Vector of the first site Index found on each site of M.
+
+By default, it finds the first site Index with prime level 0.
+"""
+firstsiteinds(M::MPO; kwargs...) =
+  [siteind(M, j; kwargs...) for j in 1:length(M)]
+
 """
     dot(y::MPS, A::MPO, x::MPS; make_inds_match::Bool = true)
     inner(y::MPS, A::MPO, x::MPS; make_inds_match::Bool = true)
@@ -134,7 +179,7 @@ function LinearAlgebra.dot(y::MPS, A::MPO, x::MPS;
                            make_inds_match::Bool = true)::Number
   N = length(A)
   if length(y) != N || length(x) != N
-      throw(DimensionMismatch("inner: mismatched lengths $N and $(length(x)) or $(length(y))"))
+    throw(DimensionMismatch("inner: mismatched lengths $N and $(length(x)) or $(length(y))"))
   end
   ydag = dag(y)
   sim_linkinds!(ydag)
@@ -181,7 +226,7 @@ function LinearAlgebra.dot(B::MPO, y::MPS,
   # Swap prime levels 1 -> 2 and 2 -> 1.
   for j in eachindex(Bdag)
     Axcommon = commonind(A[j], x[j])
-    ABcommon = uniqueind(inds(A[j], "Site"), IndexSet(Axcommon))
+    ABcommon = uniqueind(filterinds(A[j]; tags = "Site"), IndexSet(Axcommon))
     swapprime!(Bdag[j],2,3)
     swapprime!(Bdag[j],1,2)
     swapprime!(Bdag[j],3,1)
@@ -217,6 +262,27 @@ function logdot(M1::MPO, M2::MPO;
   end
   return _log_or_not_dot(M1, M2, true;
                          make_inds_match = make_inds_match)
+end
+
+function LinearAlgebra.tr(M::MPO;
+                          plev::Pair{Int, Int} = 0 => 1,
+                          tags::Pair = ts"" => ts"")
+  N = length(M)
+  #
+  # TODO: choose whether to contract or trace
+  # first depending on the bond dimension. The scaling is:
+  #
+  # 1. Trace last:  O(χ²d²) + O(χd²)
+  # 2. Trace first: O(χ²d²) + O(χ²)
+  #
+  # So tracing first is better if d > √χ.
+  #
+  L = tr(M[1]; plev = plev, tags = tags)
+  for j in 2:N
+    L *= M[j]
+    L = tr(L; plev = plev, tags = tags)
+  end
+  return L
 end
 
 """
@@ -397,8 +463,8 @@ function Base.:*(A::MPO, B::MPO; kwargs...)
   B_ = copy(B)
   orthogonalize!(B_, 1)
 
-  links_A = inds.(A.data, "Link")
-  links_B = inds.(B.data, "Link")
+  links_A = filterinds.(A.data; tags = "Link")
+  links_B = filterinds.(B.data; tags = "Link")
 
   res = deepcopy(A_)
   for i in 1:N-1
@@ -411,8 +477,8 @@ function Base.:*(A::MPO, B::MPO; kwargs...)
   sites_A = Index[]
   sites_B = Index[]
   for (AA, BB) in zip(data(A_), data(B_))
-    sda = setdiff(inds(AA, "Site"), inds(BB, "Site"))
-    sdb = setdiff(inds(BB, "Site"), inds(AA, "Site"))
+    sda = setdiff(filterinds(AA; tags="Site"), filterinds(BB; tags="Site"))
+    sdb = setdiff(filterinds(BB; tags="Site"), filterinds(AA; tags="Site"))
     length(sda) != 1 && error("In contract(::MPO, ::MPO), MPOs must have exactly one shared site index")
     length(sdb) != 1 && error("In contract(::MPO, ::MPO), MPOs must have exactly one shared site index")
     push!(sites_A, sda[1])
@@ -445,7 +511,8 @@ function Base.:*(A::MPO, B::MPO; kwargs...)
   nfork = clust * A_[N] * B_[N]
 
   # in case we primed A
-  A_ind = uniqueind(inds(A_[N-1], "Site"), inds(B_[N-1], "Site"))
+  A_ind = uniqueind(filterinds(A_[N-1]; tags = "Site"),
+                    filterinds(B_[N-1]; tags = "Site"))
   Lis = IndexSet(A_ind, sites_B[N-1], commonind(res[N-2], res[N-1]))
   U, V = factorize(nfork, Lis; 
                    ortho="right",
@@ -457,6 +524,79 @@ function Base.:*(A::MPO, B::MPO; kwargs...)
   res[N] = V
   truncate!(res;kwargs...)
   return res
+end
+
+"""
+    sample(M::MPO)
+
+Given a normalized MPO `M`,
+returns a `Vector{Int}` of `length(M)`
+corresponding to one sample of the
+probability distribution defined by the MPO,
+treating the MPO as a density matrix.
+
+The MPO `M` should have an (approximately)
+positive spectrum.
+"""
+function sample(M::MPO)
+  N = length(M)
+  s = siteinds(M)
+  R = Vector{ITensor}(undef, N)
+  R[N] = M[N] * δ(dag(s[N]))
+  for n in reverse(1:N-1)
+    R[n] = M[n] * δ(dag(s[n])) * R[n+1]
+  end
+
+  if abs(1.0-R[1][]) > 1E-8
+    error("sample: MPO is not normalized, norm=$(norm(M[1]))")
+  end
+
+  result = zeros(Int,N)
+  ρj = M[1] * R[2]
+  Lj = ITensor()
+
+  for j in 1:N
+    s = siteind(M,j)
+    d = dim(s)
+    # Compute the probability of each state
+    # one-by-one and stop when the random
+    # number r is below the total prob so far
+    pdisc = 0.0
+    r = rand()
+    # Will need n, An, and pn below
+    n = 1
+    projn = ITensor()
+    pn = 0.0
+    while n <= d
+      projn = ITensor(s)
+      projn[s[n]] = 1.0
+      pnc = (ρj * projn * prime(projn))[]
+      if imag(pnc) > 1e-8
+        error("In sample, probability $pnc is complex.")
+      end
+      pn = real(pnc)
+      pdisc += pn
+      (r < pdisc) && break
+      n += 1
+    end
+    result[j] = n
+    if j < N
+      if j == 1
+        Lj = M[j] * projn * prime(projn)
+      elseif j > 1
+        Lj = Lj * M[j] * projn * prime(projn)
+      end
+      if j == N-1
+        ρj = Lj * M[j+1]
+      else
+        ρj = Lj * M[j+1] * R[j+2]
+      end
+      s = siteind(M, j+1)
+      normj = (ρj * δ(s', s))[]
+      ρj ./= normj
+    end
+  end
+  return result
 end
 
 function HDF5.write(parent::Union{HDF5File,HDF5Group},

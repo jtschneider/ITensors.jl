@@ -250,34 +250,56 @@ end
 Construct a product state MPS with element type `Float64` and
 nonzero values determined from the input IndexVals.
 """
-productMPS(ivals::Vector{<:IndexVal}) = productMPS(Float64,
-                                                   ivals::Vector{<:IndexVal})
+productMPS(ivals::Vector{<:IndexVal}) =
+  productMPS(Float64,
+             ivals::Vector{<:IndexVal})
 
 """
-    productMPS(::Type{T},sites::Vector{<:Index},states)
+    productMPS(::Type{T},
+               sites::Vector{<:Index},
+               states::Union{Vector{String},
+                             Vector{Int},
+                             String,
+                             Int})
 
 Construct a product state MPS of element type `T`, having
 site indices `sites`, and which corresponds to the initial
-state given by the array `states`. The `states` array may
-consist of either an array of integers or strings, as 
-recognized by the `state` function defined for the relevant
-Index tag type.
+state given by the array `states`. The input `states` may
+be an array of strings or an array of ints recognized by the 
+`state` function defined for the relevant Index tag type.
+In addition, a single string or int can be input to create
+a uniform state.
 
-#Examples
+# Examples
 ```julia
 N = 10
-sites = siteinds("S=1/2",N)
+sites = siteinds("S=1/2", N)
 states = [isodd(n) ? "Up" : "Dn" for n=1:N]
-psi = productMPS(ComplexF64,sites,states)
+psi = productMPS(ComplexF64, sites, states)
+phi = productMPS(sites, "Up")
 ```
 """
 function productMPS(::Type{T},
-                    sites::Vector{<:Index},
-                    states) where {T<:Number}
+                    sites::Vector{ <: Index},
+                    states) where {T <: Number}
   if length(sites) != length(states)
     throw(DimensionMismatch("Number of sites and and initial states don't match"))
   end
   ivals = [state(sites[n],states[n]) for n=1:length(sites)]
+  return productMPS(T, ivals)
+end
+
+function productMPS(::Type{T},
+                    sites::Vector{ <: Index},
+                    states::Union{String, Int}) where {T <: Number}
+  ivals = [state(sites[n], states) for n in 1:length(sites)]
+  return productMPS(T, ivals)
+end
+
+function productMPS(::Type{T},
+                    sites::Vector{ <: Index},
+                    states::Function) where {T <: Number}
+  ivals = [state(sites[n], states(n)) for n in 1:length(sites)]
   return productMPS(T, ivals)
 end
 
@@ -291,7 +313,7 @@ consist of either an array of integers or strings, as
 recognized by the `state` function defined for the relevant
 Index tag type.
 
-#Examples
+# Examples
 ```julia
 N = 10
 sites = siteinds("S=1/2",N)
@@ -299,28 +321,23 @@ states = [isodd(n) ? "Up" : "Dn" for n=1:N]
 psi = productMPS(sites,states)
 ```
 """
-productMPS(sites::Vector{<:Index},
-           states) = productMPS(Float64,
-                                sites,
-                                states)
+productMPS(sites::Vector{ <: Index},
+           states) =
+  productMPS(Float64, sites, states)
 
-function siteind(M::MPS, j::Int)
-  N = length(M)
-  (N==1) && return inds(M[1])[1]
+"""
+    siteind(M::MPS, j::Int; kwargs...)
 
-  if j == 1
-    si = uniqueind(M[j], M[j+1])
-  elseif j == N
-    si = uniqueind(M[j], M[j-1])
-  else
-    si = uniqueind(M[j], M[j-1], M[j+1])
-  end
-  return si
-end
+Get the site Index of the MPS.
+"""
+siteind(M::MPS, j::Int; kwargs...) = firstsiteind(M, j; kwargs...)
 
-function siteinds(M::MPS)
-  return [siteind(M, j) for j in 1:length(M)]
-end
+"""
+    siteinds(M::MPS)
+
+Get a vector of the site indices of the MPS.
+"""
+siteinds(M::MPS) = [siteind(M, j) for j in 1:length(M)]
 
 function replace_siteinds!(M::MPS, sites)
   for j in eachindex(M)
@@ -339,11 +356,10 @@ Factorize the ITensor `phi` and replace the ITensors
 `b` and `b+1` of MPS `M` with the factors. Choose
 the orthogonality with `ortho="left"/"right"`.
 """
-function replacebond!(M::MPS,
-                      b::Int,
-                      phi::ITensor;
+function replacebond!(M::MPS, b::Int, phi::ITensor;
                       kwargs...)
   ortho::String = get(kwargs, :ortho, "left")
+  swapsites::Bool = get(kwargs, :swapsites, false)
   which_decomp::Union{String, Nothing} = get(kwargs, :which_decomp, nothing)
   normalize::Bool = get(kwargs, :normalize, false)
 
@@ -353,9 +369,18 @@ function replacebond!(M::MPS,
           Note that the options are now the same as factorize, so use `left` instead of `fromleft` and `right` instead of `fromright`.""")
   end
 
-  L,R,spec = factorize(phi,inds(M[b]); which_decomp = which_decomp,
-                                       tags = tags(linkind(M,b)),
-                                       kwargs...)
+  indsMb = inds(M[b])
+  if swapsites
+    sb = siteind(M, b)
+    sbp1 = siteind(M, b+1)
+    indsMb = replaceind(indsMb, sb, sbp1)
+  end
+
+  L,R,spec = factorize(phi, indsMb;
+                       which_decomp = which_decomp,
+                       tags = tags(linkind(M, b)),
+                       kwargs...)
+
   M[b]   = L
   M[b+1] = R
   if ortho == "left"
@@ -370,6 +395,18 @@ function replacebond!(M::MPS,
     error("In replacebond!, got ortho = $ortho, only currently supports `left` and `right`.")
   end
   return spec
+end
+
+"""
+    replacebond(M::MPS, b::Int, phi::ITensor; kwargs...)
+
+Like `replacebond!`, but returns the new MPS.
+"""
+function replacebond(M0::MPS, b::Int, phi::ITensor;
+                     kwargs...)
+  M = copy(M0)
+  replacebond!(M, b, phi; kwargs...)
+  return M
 end
 
 """
@@ -427,15 +464,13 @@ function sample(m::MPS)
     while n <= d
       projn = ITensor(s)
       projn[s[n]] = 1.0
-      An = A*projn
+      An = A * dag(projn)
       pn = real(scalar(dag(An)*An))
       pdisc += pn
       (r < pdisc) && break
       n += 1
     end
-
     result[j] = n
-
     if j < N
       A = m[j+1]*An
       A *= (1.0/sqrt(pn))
