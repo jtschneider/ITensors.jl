@@ -45,6 +45,22 @@ using ITensors,
                                           which_decomp="svd")
   end
 
+  @testset "factorize with QR" begin
+    l = Index(5,"l")
+    s = Index(2,"s")
+    r = Index(10,"r")
+    A = randomITensor(l,s,r)
+    Q,R, = factorize(A,l,s; which_decomp="qr")
+    q = commonind(Q,R)
+    @test A ≈ Q*R atol=1e-13
+    @test Q*dag(prime(Q,q)) ≈ δ(Float64,q,q') atol=1e-13
+
+    R,Q, = factorize(A,l,s; which_decomp="qr", ortho="right")
+    q = commonind(Q,R)
+    @test A ≈ Q*R atol=1e-13
+    @test Q*dag(prime(Q,q)) ≈ δ(Float64,q,q') atol=1e-13
+  end
+
   @testset "eigen" begin
     i = Index(2,"i")
     j = Index(2,"j")
@@ -82,6 +98,10 @@ using ITensors,
     @test entropy(Spectrum([0.5; 0.5], 0.0)) == log(2)
     @test entropy(Spectrum([1.0], 0.0)) == 0.0 
     @test entropy(Spectrum([0.0], 0.0)) == 0.0 
+
+    @test isnothing(eigs(Spectrum(nothing, 1.0)))
+    @test_throws ErrorException entropy(Spectrum(nothing, 1.0))
+    @test truncerror(Spectrum(nothing, 1.0)) == 1.0
   end
 end
 

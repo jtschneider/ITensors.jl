@@ -16,6 +16,98 @@ Random.seed!(1234)
     @test nnzblocks(A) == 2
   end
 
+  @testset "Construct from Array" begin
+    i = Index([QN(0)=>1, QN(1)=>2], "i")
+
+    A = [1.0 0.0 0.0;
+         0.0 2.0 3.0;
+         0.0 1e-10 4.0]
+    T = ITensor(A, i', dag(i))
+    @test flux(T) == QN(0)
+    @test nnzblocks(T) == 2
+    @test (1,1) in nzblocks(T)
+    @test (2,2) in nzblocks(T)
+    @test T[1, 1] == 1.0
+    @test T[2, 2] == 2.0
+    @test T[2, 3] == 3.0
+    @test T[3, 2] == 1e-10
+    @test T[3, 3] == 4.0
+
+    T = itensor(A, i', dag(i))
+    @test flux(T) == QN(0)
+    @test nnzblocks(T) == 2
+    @test (1,1) in nzblocks(T)
+    @test (2,2) in nzblocks(T)
+    @test T[1, 1] == 1.0
+    @test T[2, 2] == 2.0
+    @test T[2, 3] == 3.0
+    @test T[3, 2] == 1e-10
+    @test T[3, 3] == 4.0
+
+    T = ITensor(A, i', dag(i); tol = 1e-9)
+    @test flux(T) == QN(0)
+    @test nnzblocks(T) == 2
+    @test (1,1) in nzblocks(T)
+    @test (2,2) in nzblocks(T)
+    @test T[1, 1] == 1.0
+    @test T[2, 2] == 2.0
+    @test T[2, 3] == 3.0
+    @test T[3, 2] == 0.0
+    @test T[3, 3] == 4.0
+
+    A = [1e-9 0.0 0.0;
+         0.0 2.0 3.0;
+         0.0 1e-10 4.0]
+    T = ITensor(A, i', dag(i); tol = 1e-8)
+    @test flux(T) == QN(0)
+    @test nnzblocks(T) == 1
+    @test (2,2) in nzblocks(T)
+    @test T[1, 1] == 0.0
+    @test T[2, 2] == 2.0
+    @test T[2, 3] == 3.0
+    @test T[3, 2] == 0.0
+    @test T[3, 3] == 4.0
+
+    A = [1e-9 2.0 3.0;
+         1e-9 1e-10 2e-10;
+         2e-9 1e-10 4e-10]
+    T = ITensor(A, i', dag(i); tol = 1e-8)
+    @test flux(T) == QN(-1)
+    @test nnzblocks(T) == 1
+    @test (1,2) in nzblocks(T)
+    @test T[1, 1] == 0.0
+    @test T[1, 2] == 2.0
+    @test T[1, 3] == 3.0
+    @test T[2, 2] == 0.0
+    @test T[2, 3] == 0.0
+    @test T[3, 2] == 0.0
+    @test T[3, 3] == 0.0
+
+    A = [1e-9 2.0 3.0;
+         1e-5 1e-10 2e-10;
+         2e-9 1e-10 4e-10]
+    @test_throws ErrorException ITensor(A, i', dag(i); tol = 1e-8)
+  end
+
+  @testset "ITensor iteration" begin
+    i = Index([QN(0)=>1,QN(1)=>2],"i")
+    j = Index([QN(0)=>3,QN(1)=>4,QN(2)=>5],"j")
+
+    A = randomITensor(i, dag(j))
+    Is = eachindex(A)
+    @test length(Is) == dim(A)
+    sumA = 0.0
+    for I in Is
+      sumA += A[I]
+    end
+    @test sumA ≈ sum(ITensors.data(A))
+    sumA = 0.0
+    for a in A
+      sumA += a
+    end
+    @test sumA ≈ sum(A)
+  end
+
   @testset "Constructor (from Tuple)" begin
     i = Index([QN(0)=>1,QN(1)=>2],"i")
     j = Index([QN(0)=>3,QN(1)=>4,QN(2)=>5],"j")
@@ -277,6 +369,25 @@ Random.seed!(1234)
       @test nnzblocks(Ap) == nnzblocks(A)
       @test hassameinds(Ap,A)
       @test norm(A-Ap) ≈ 0.0
+    end
+
+    @testset "Combine set direction" begin
+      i1 = Index([QN(0)=>2,QN(1)=>3],"i1")
+      A = randomITensor(i1',dag(i1))
+      @test isnothing(ITensors.checkflux(A))
+      C = combiner(dag(i1); dir = ITensors.Out)
+      c = combinedind(C)
+      @test dir(c) == ITensors.Out
+      AC = A * C
+      @test nnz(AC) == nnz(A)
+      @test nnzblocks(AC) == nnzblocks(A)
+      @test isnothing(ITensors.checkflux(AC))
+      Ap = AC*dag(C)
+      @test nnz(Ap) == nnz(A)
+      @test nnzblocks(Ap) == nnzblocks(A)
+      @test hassameinds(Ap, A)
+      @test isnothing(ITensors.checkflux(AC))
+      @test A ≈ Ap
     end
 
     @testset "Order 2 (IndexSet constructor)" begin
@@ -631,10 +742,10 @@ Random.seed!(1234)
       @test hassameinds(U, (i,j,u))
       @test hassameinds(D, (u,up))
 
-      @test norm(A - dag(U) * D * U') ≈ 0.0 atol=1e-11
-      @test norm(A - dag(U) * D * Ut) ≈ 0.0 atol=1e-11
-      @test norm(A * U - U' * D) ≈ 0.0 atol=1e-11
-      @test norm(A * U - Ut * D) ≈ 0.0 atol=1e-11
+      @test A ≈ dag(U) * D * U' atol=1e-11
+      @test A ≈ dag(U) * D * Ut atol=1e-11
+      @test A * U ≈ U' * D atol=1e-11
+      @test A * U ≈ Ut * D atol=1e-11
     end
 
     @testset "eigen hermitian (truncate)" begin
@@ -692,7 +803,7 @@ Random.seed!(1234)
       @test spec.truncerr ≤ cutoff
       err = sqrt(1-(Ap*dag(Ap))[]/(A*dag(A))[])
       @test err ≤ cutoff
-      @test err ≈ spec.truncerr rtol=1e-1
+      @test err ≈ spec.truncerr rtol=3e-1
 		end
 
     @testset "eigen non-hermitian" begin
@@ -717,10 +828,10 @@ Random.seed!(1234)
       @test hastags(up,"x")
       @test plev(up) == 1
 
-      @test norm(A - U' * D * dag(U)) ≉ 0.0 atol=1e-12
-      @test norm(A - Ut * D * dag(U)) ≉ 0.0 atol=1e-12
-      @test norm(A * U - U' * D) ≈ 0.0 atol=1e-12
-      @test norm(A * U - Ut * D) ≈ 0.0 atol=1e-12
+      @test A ≉ U' * D * dag(U) atol=1e-12
+      @test A ≉ Ut * D * dag(U) atol=1e-12
+      @test A * U ≈ U' * D atol=1e-12
+      @test A * U ≈ Ut * D atol=1e-12
     end
 
     @testset "eigen non-hermitian (general inds)" begin
@@ -754,8 +865,18 @@ Random.seed!(1234)
       @test hassameinds(U, (ĩ, j̃, r))
       @test hassameinds(Ut, (i, j, l))
 
-      @test norm(A * U - Ut * D) ≈ 0.0 atol=1e-12
-      @test norm(A - Ut * D * dag(U)) ≉ 0.0 atol=1e-12
+      @test A * U ≈ Ut * D atol=1e-12
+      @test A ≉ Ut * D * dag(U) atol=1e-12
+    end
+
+    @testset "eigen mixed arrows" begin
+      i1 = Index([QN(0)=>1,QN(1)=>2],"i1")
+      i2 = Index([QN(0)=>1,QN(1)=>2],"i2")
+      A = randomITensor(i1, i2, dag(i1)', dag(i2)')
+      F = eigen(A, (i1, i1'), (i2', i2))
+      D, U = F
+      Ut = F.Vt
+      @test A * U ≈ Ut * D atol=1e-12
     end
 
   end
@@ -784,7 +905,7 @@ Random.seed!(1234)
       for b in nzblocks(V)
         @test flux(V,b)==QN(0)
       end
-      @test isapprox(norm(U*S*V-A),0.0; atol=1e-14)
+      @test U * S * V ≈ A atol=1e-14
     end
 
     @testset "svd example 2" begin
@@ -809,7 +930,7 @@ Random.seed!(1234)
       for b in nzblocks(V)
         @test flux(V,b)==QN(0)
       end
-      @test isapprox(norm(U*S*V-A),0.0; atol=1e-14)
+      @test U * S * V ≈ A atol=1e-14
     end
 
     @testset "svd example 3" begin
@@ -834,7 +955,7 @@ Random.seed!(1234)
       for b in nzblocks(V)
         @test flux(V,b)==QN(0)
       end
-      @test isapprox(norm(U*S*V-A),0.0; atol=1e-14)
+      @test U * S * V ≈ A atol=1e-14
     end
 
     @testset "svd example 4" begin
@@ -862,7 +983,7 @@ Random.seed!(1234)
       for b in nzblocks(V)
         @test flux(V,b)==QN(0,2)
       end
-      @test isapprox(norm(U*S*V-A),0.0; atol=1e-14)
+      @test U * S * V ≈ A atol=1e-14
     end
 
     @testset "svd example 5" begin
@@ -890,7 +1011,7 @@ Random.seed!(1234)
       for b in nzblocks(V)
         @test flux(V,b)==QN(0,2)
       end
-      @test isapprox(norm(U*S*V-A),0.0; atol=1e-14)
+      @test U * S * V ≈ A atol=1e-14
     end
 
     @testset "svd example 6" begin
@@ -918,7 +1039,7 @@ Random.seed!(1234)
       for b in nzblocks(V)
         @test flux(V,b)==QN(0,2)
       end
-      @test isapprox(norm(U*S*V-A),0.0; atol=1e-14)
+      @test U * S * V ≈ A atol=1e-14
     end
 
     @testset "svd truncation example 1" begin
@@ -1177,7 +1298,7 @@ Random.seed!(1234)
       for b in nzblocks(V)
         @test flux(V,b)==QN()
       end
-      @test norm(U*S*V-A) ≈ 0 atol=1e-15
+      @test U * S * V ≈ A atol=1e-15
     end
 
     @testset "SVD no truncate bug" begin
@@ -1280,6 +1401,49 @@ Random.seed!(1234)
   cv4 = dag(v4;always_copy=true)
   cv4[1,3] = 123.45
   @test v4[1,3] ≈ orig_elt
+
+end
+
+@testset "exponentiate" begin
+
+  @testset "Simple arrows" begin
+    i1 = Index([QN(0)=>1,QN(1)=>2],"i1")
+    i2 = Index([QN(0)=>1,QN(1)=>2],"i2")
+    A = randomITensor(QN(),i1,i2,dag(i1)', dag(i2)')
+    Aexp = exp(A)
+    Amat = Array(A, i1,i2, i1', i2')
+    Amatexp = reshape(exp(reshape(Amat,9,9)),3,3,3,3)
+    @test isapprox(norm(Array(Aexp,i1,i2,i1',i2') - Amatexp),0.0, atol=1e-14)
+    @test flux(Aexp) == QN()
+    @test length(setdiff(inds(Aexp),inds(A)))==0
+
+    @test isapprox(norm(exp(A, (i1,i2), (i1',i2')) - Aexp),0.0, atol=5e-14)
+
+    # test the case where indices are permuted
+    A = randomITensor(QN(),i1,dag(i1)', dag(i2)',i2)
+    Aexp = exp(A, (i1,i2), (i1',i2'))
+    Amat = Array(A, i1,i2,i1', i2')
+    Amatexp = reshape(exp(reshape(Amat,9,9)),3,3,3,3)
+    @test isapprox(norm(Array(Aexp,i1,i2,i1',i2') - Amatexp),0.0,atol=1e-14)
+
+    # test exponentiation in the Hermitian case
+    i1 = Index([QN(0)=>2,QN(1)=>2,QN(2)=>3],"i1")
+    A = randomITensor(QN(),i1,dag(i1)')
+    Ad = dag(swapinds(A,IndexSet(i1),IndexSet(dag(i1)')))
+    Ah = A+Ad + 1e-10*randomITensor(QN(),i1,dag(i1)')
+    Amat = Array(Ah ,i1', i1)
+    Aexp = exp(Ah; ishermitian=true)
+    Amatexp= exp(LinearAlgebra.Hermitian(Amat))
+    @test isapprox(norm(Array(Aexp,i1,i1')-Amatexp),0.0,atol=5e-14)
+  end
+
+  @testset "Mixed arrows" begin
+    i1 = Index([QN(0)=>1,QN(1)=>2],"i1")
+    i2 = Index([QN(0)=>1,QN(1)=>2],"i2")
+    A = randomITensor(i1, i2, dag(i1)', dag(i2)')
+    expA = exp(A, (i1, i1'), (i2', i2))
+    @test exp(dense(A), (i1, i1'), (i2', i2)) ≈ dense(expA)
+  end
 
 end
 

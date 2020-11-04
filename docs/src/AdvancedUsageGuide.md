@@ -255,10 +255,6 @@ since it helps with:
  - Officially registering your package with Julia.
 and many more features that we will mention later.
 
-First enter Julia's standard development directory, `~/.julia/dev`.
-```
-$ cd ~/.julia/dev
-```
 Start up Julia and install [PkgTemplates](https://invenia.github.io/PkgTemplates.jl/stable/)
 ```julia
 $ julia
@@ -271,10 +267,21 @@ then press backspace and type:
 ```
 julia> using PkgTemplates
 
-julia> t = Template(; user="your_github_username")
+julia> t = Template(; user="your_github_username", plugins=[Git(; ssh=true),])
 
 julia> t("MyITensorsPkg")
 ```
+You should put your Github account name instead of `"your_github_username"`,
+if you want to use Github to host your package. 
+The option `plugins=[Git(; ssh=true),]` sets the Github authentication to use
+ssh, which is generally more convenient. You can switch to https (where you
+have to type your username and password to push changes) by setting `ssh=false`
+or leaving off `plugins=[...]`. By default, the package will be located in
+the directory `~/.julia/dev`, you can change this with the keyword argument
+`dir=[...]`. However, `~/.julia/dev` is recommended since that is the directory
+Julia's package manager (and other packages like `Revise`) will look for development
+packages. Please see the `PkgTemplate` documentation for more customization options.
+
 Then, we want to tell Julia about our new package. We do this as
 follows:
 ```julia
@@ -395,31 +402,6 @@ using Test
   @test isapprox(norm2(A), norm(A)^2)
 end
 ```
-You'll want to add ITensors as a test dependency, in case it
-is not already installed on someone's system who is running
-the tests. You can do this by editing the file
-`~/.julia/dev/MyITensorsPkg/Project.toml` to look like:
-```
-name = "MyITensorsPkg"
-uuid = "b33b1a07-6eec-4458-8efd-3d86e8afc6ba"
-authors = ["Matthew Fishman <mfishman@flatironinstitute.org> and contributors"]
-version = "0.1.0"
-
-[deps]
-ITensors = "9136182c-28ba-11e9-034c-db9fb085ebd5"
-
-[compat]
-julia = "1"
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-ITensors = "9136182c-28ba-11e9-034c-db9fb085ebd5"
-
-[targets]
-test = ["Test", "ITensors"]
-```
-so add the `ITensors = ...` line under `[extras]` and add 
-`"ITensors"` under `[targets]`.
 Now when you test your package you should see:
 ```julia
 pkg> test MyITensorsPkg
@@ -437,10 +419,15 @@ and officially register them as Julia packages.
 
 You can set up your local package as a Github repository by
 following the steps [here](https://help.github.com/en/github/importing-your-projects-to-github/adding-an-existing-project-to-github-using-the-command-line). Many of the steps may be unnecessary since they
-were already set up by `PkgTemplates`.
+were already set up by `PkgTemplates`. You should be able to
+go to the website [here](https://github.com/new), create a new
+Github repository with the name `MyITensorsPkg.jl`, and then following
+the instructions under "push an existing repository from the command line".
 
-You may also want to change from HTTPS to SSH authentification
-as described [here](https://help.github.com/en/github/using-git/changing-a-remotes-url).
+You may also want to switch between HTTPS and SSH authentication
+as described [here](https://help.github.com/en/github/using-git/changing-a-remotes-url),
+if you didn't choose your preferred authentication protocol with
+PkgTemplates.
 
 There are many more features you can add to your package through 
 various Julia packages and Github, for example:
@@ -527,8 +514,7 @@ If you plan to use ITensors.jl directly from the command line
 (i.e. not from the REPL), and the startup time is an issue,
 you can try compiling ITensors.jl using [PackageCompiler](https://julialang.github.io/PackageCompiler.jl/dev/).
 
-Before using PackageCompiler, when we first start using ITensors.jl
-we might see:
+Before using PackageCompiler to compile ITensors, when we first start using ITensors.jl we might see:
 ```julia
 julia> @time using ITensors
   3.845253 seconds (10.96 M allocations: 618.071 MiB, 3.95% gc time)
@@ -545,27 +531,21 @@ julia> @time svd(A, i');
 julia> @time svd(A, i');
   0.000177 seconds (450 allocations: 36.609 KiB)
 ```
-We would start by making a file `precompile_itensors.jl`:
-```julia
-using ITensors
-i = Index(2)
-A = randomITensor(i', i)
-svd(A, i')
+ITensors provides the command `ITensors.compile()` to create what is
+called a "custom system image", a custom version of Julia that
+includes a compiled version of ITensors (see the [PackageCompiler documentation](https://julialang.github.io/PackageCompiler.jl/dev/) for more details).
+Just run the command:
 ```
-We make the "custom system image", a custom version of Julia that
-includes a compiled version of ITensors.jl, with the commands:
+julia> ITensors.compile()
+[...]
 ```
-julia> using PackageCompiler
-
-julia> create_sysimage(:ITensors, sysimage_path="sys_itensors.so", precompile_execution_file="precompile_itensors.jl")
-[ Info: PackageCompiler: creating system image object file, this might take a while...
+By default, this will create the file `sys_itensors.so` in the directory
+`~/.julia/sysimages`.
+Then if we start julia with:
 ```
-Then, in the same directory that contains the file `sys_itensors.so`,
-if we start julia with:
+$ julia --sysimage ~/.julia/sysimages/sys_itensors.so
 ```
-$ julia --sysimage sys_itensors.so
-```
-then we see:
+then you should see something like:
 ```julia
 julia> @time using ITensors
   0.330587 seconds (977.61 k allocations: 45.807 MiB, 1.89% gc time)
@@ -584,10 +564,10 @@ julia> @time svd(A, i');
 ```
 which is much better. 
 
-There is a script to partially automate this process in the
-`packagecompile/` directory of the ITensors.jl library.
-Additionally, we will investigate pre-packaging a compiled 
-version of ITensors.jl.
+Note that you will have to recompile ITensors with the command 
+`ITensors.compile()` any time that you update the version of ITensors
+in order to keep the system image updated. We hope to make this
+process more automated in the future.
 
 ## Multithreading Support
 
@@ -863,7 +843,7 @@ T = Tensor(2,2,2)
 T[1,2,1] = 1.3  # Conventional element setting
 
 i = Index(2)
-T = Tensor(i,i',i')  # The identifiers are ignored, just interpreted as above
+T = Tensor((i,i',i'))  # The identifiers are ignored, just interpreted as above
 T[1,2,1] = 1.3
 ```
 To make performant ITensor code (refer to the the previous section 

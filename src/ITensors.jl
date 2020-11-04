@@ -10,25 +10,31 @@ module ITensors
 #####################################
 # External packages
 #
+using Compat
 using HDF5
 using KrylovKit
 using LinearAlgebra
 using NDTensors
+using PackageCompiler
 using Printf
 using Random
 using StaticArrays
 using TimerOutputs
 
 #####################################
-# Global Variables
+# Exports
 #
 include("exports.jl")
 
 #####################################
+# Imports
+#
+include("imports.jl")
+
+#####################################
 # Global Variables
 #
-const GLOBAL_PARAMS = Dict("WarnTensorOrder" => 14)
-const GLOBAL_TIMER = TimerOutput()
+include("global_variables.jl")
 
 #####################################
 # Index and IndexSet
@@ -74,8 +80,9 @@ include("mps/dmrg.jl")
 #####################################
 # Physics
 #
-include("physics/tag_types.jl")
+include("physics/sitetype.jl")
 include("physics/lattices.jl")
+include("physics/site_types/generic_sites.jl")
 include("physics/site_types/spinhalf.jl")
 include("physics/site_types/spinone.jl")
 include("physics/site_types/fermion.jl")
@@ -83,6 +90,16 @@ include("physics/site_types/electron.jl")
 include("physics/site_types/tj.jl")
 include("physics/fermions.jl")
 include("physics/autompo.jl")
+
+#####################################
+# Argument parsing
+#
+include("argsdict/argsdict.jl")
+
+#####################################
+# Package compilation
+#
+include("packagecompile/compile.jl")
 
 #####################################
 # Developer tools, for internal

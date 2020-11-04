@@ -1,8 +1,16 @@
 # Introduction
 
-| **Documentation**                                                               | **Build Status**                                                                                |
-|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
-| [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://itensor.github.io/ITensors.jl/stable/) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://itensor.github.io/ITensors.jl/dev/) | [![Tests](https://github.com/ITensor/ITensors.jl/workflows/Tests/badge.svg)](https://github.com/ITensor/ITensors.jl/actions?query=workflow%3ATests) [![codecov](https://codecov.io/gh/ITensor/ITensors.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ITensor/ITensors.jl) |
+| **Documentation**                                                               |
+|:-------------------------------------------------------------------------------:|
+| [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://itensor.github.io/ITensors.jl/stable/) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://itensor.github.io/ITensors.jl/dev/) |
+
+|**Build Status**                                                                                |
+:-----------------------------------------------------------------------------------------------:|
+| [![Tests](https://github.com/ITensor/ITensors.jl/workflows/Tests/badge.svg)](https://github.com/ITensor/ITensors.jl/actions?query=workflow%3ATests) [![codecov](https://codecov.io/gh/ITensor/ITensors.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ITensor/ITensors.jl) |
+
+|**Citation**                                                                    |
+|:-------------------------------------------------------------------------------:|
+|[![arXiv](https://img.shields.io/badge/arXiv-2007.14822-b31b1b.svg)](https://arxiv.org/abs/2007.14822)|
 
 ITensors is a library for rapidly creating correct and efficient
 tensor network algorithms. 
@@ -40,7 +48,7 @@ Or, equivalently, via the `Pkg` API:
 ```julia
 julia> import Pkg; Pkg.add("ITensors")
 ```
-Please note that right now, ITensors.jl requires that you use Julia v1.4 or later (since we are using a feature that was introduced in Julia v1.4). We will work on supporting older minor versions.
+Please note that right now, ITensors.jl requires that you use Julia v1.3 or later (since ITensors.jl relies on a feature that was introduced in Julia v1.3).
 
 We recommend using ITensors.jl with Intel MKL in order to get the best possible performance. If you have not done so already, you can replace your current BLAS and LAPACK implementation with MKL by using the MKL.jl package. Please follow the instructions [here](https://github.com/JuliaComputing/MKL.jl).
 
@@ -48,6 +56,21 @@ We recommend using ITensors.jl with Intel MKL in order to get the best possible 
 
 - [**STABLE**](https://itensor.github.io/ITensors.jl/stable/) --  **documentation of the most recently tagged version.**
 - [**DEVEL**](https://itensor.github.io/ITensors.jl/dev/) -- *documentation of the in-development version.*
+
+## Citation
+
+If you use ITensors.jl in your work, for now please cite the [arXiv preprint](https://arxiv.org/abs/2007.14822):
+
+```
+@misc{fishman2020itensor,
+    title={The \mbox{ITensor} Software Library for Tensor Network Calculations},
+    author={Matthew Fishman and Steven R. White and E. Miles Stoudenmire},
+    year={2020},
+    eprint={2007.14822},
+    archivePrefix={arXiv},
+    primaryClass={cs.MS}
+}
+```
 
 ## Code Examples
 
@@ -234,9 +257,9 @@ let
   # (here we make the 1D Heisenberg model)
   ampo = AutoMPO()
   for j=1:N-1
-    ampo +=     ("Sz",j,"Sz",j+1)
-    ampo += (0.5,"S+",j,"S-",j+1)
-    ampo += (0.5,"S-",j,"S+",j+1)
+    ampo += "Sz",j,"Sz",j+1
+    ampo += 0.5,"S+",j,"S-",j+1
+    ampo += 0.5,"S-",j,"S+",j+1
   end
   H = MPO(ampo,sites)
 

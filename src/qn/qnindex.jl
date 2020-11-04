@@ -208,16 +208,36 @@ function NDTensors.outer(qn1::QNBlocks, qn2::QNBlocks)
 end
 
 function NDTensors.outer(i1::QNIndex, i2::QNIndex;
-                         tags="", plev=0)
-  if dir(i1) == dir(i2)
-    return Index(space(i1)⊗space(i2); dir=dir(i1),
-                                      tags=tags,
-                                      plev=plev)
-  else
-    return Index((dir(i1)*space(i1))⊗(dir(i2)*space(i2)); dir=Out,
-                                                          tags=tags,
-                                                          plev=plev)
+                         dir = nothing,
+                         tags = "",
+                         plev::Int = 0)
+  if isnothing(dir)
+    if ITensors.dir(i1) == ITensors.dir(i2)
+      dir = ITensors.dir(i1)
+    else
+      dir = Out
+    end
   end
+  newspace = dir * ((ITensors.dir(i1) * space(i1)) ⊗
+                    (ITensors.dir(i2) * space(i2)))
+  return Index(newspace;
+               dir = dir,
+               tags = tags,
+               plev = plev)
+end
+
+function NDTensors.outer(i::QNIndex;
+                         dir = nothing,
+                         tags = "",
+                         plev::Int = 0)
+  if isnothing(dir)
+    dir = ITensors.dir(i)
+  end
+  newspace = dir * (ITensors.dir(i) * space(i))
+  return Index(newspace;
+               dir = dir,
+               tags = tags,
+               plev = plev)
 end
 
 function Base.isless(qnb1::QNBlock, qnb2::QNBlock)
@@ -283,11 +303,41 @@ function combineblocks(i::QNIndex)
   return iR,perm,comb
 end
 
-removeqns(i::QNIndex) = Index(id(i),
-                              dim(i),
-                              dir(i),
-                              tags(i),
-                              plev(i))
+removeqns(i::QNIndex) =
+  Index(id(i), dim(i), Neither, tags(i), plev(i))
+
+function addqns(i::Index, qns::QNBlocks; dir::Arrow = Out)
+  @assert dim(i) == dim(qns)
+  return Index(id(i), qns, dir, tags(i), plev(i))
+end
+  
+function addqns(i::QNIndex, qns::QNBlocks)
+  @assert dim(i) == dim(qns)
+  @assert nblocks(qns) == nblocks(i)
+  iqns = space(i)
+  j = copy(i)
+  jqn = space(j)
+  for n in 1:nblocks(i)
+    @assert blockdim(iqns, n) == blockdim(qns, n)
+    iqn_n = qn(iqns, n)
+    qn_n = qn(qns, n)
+    newqn = iqn_n
+    for nqv in 1:nactive(qn_n)
+      qv = qn_n[nqv]
+      newqn = addqnval(newqn, qv)
+    end
+    jqn[n] = newqn => blockdim(iqns, n)
+  end
+  return j
+end
+
+mutable_storage(::Type{Order{N}},
+                ::Type{IndexT}) where {N, IndexT <: QNIndex} =
+  SizedVector{N, IndexT}(undef)
+
+isfermionic(i::Index) = false
+
+isfermionic(i::QNIndex) = any(q -> isfermionic(qn(q)), space(i))
 
 function Base.show(io::IO,
                    i::QNIndex)
@@ -304,3 +354,32 @@ function Base.show(io::IO,
   end
 end
 
+function HDF5.write(parent::Union{HDF5File, HDF5Group},
+                    name::AbstractString,
+                    B::QNBlocks)
+  g = g_create(parent, name)
+  attrs(g)["type"] = "QNBlocks"
+  attrs(g)["version"] = 1
+  write(g,"length",length(B))
+  dims = [block[2] for block in B]
+  write(g,"dims",dims)
+  for n=1:length(B)
+    write(g,"QN[$n]",B[n][1])
+  end
+end
+
+function HDF5.read(parent::Union{HDF5File,HDF5Group},
+                   name::AbstractString,
+                   ::Type{QNBlocks})
+  g = g_open(parent,name)
+  if read(attrs(g)["type"]) != "QNBlocks"
+    error("HDF5 group or file does not contain QNBlocks data")
+  end
+  N = read(g,"length")
+  dims = read(g,"dims")
+  B = QNBlocks(undef,N)
+  for n=1:length(B)
+    B[n] = QNBlock(read(g,"QN[$n]",QN),dims[n])
+  end
+  return B
+end
