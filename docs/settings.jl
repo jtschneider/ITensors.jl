@@ -18,14 +18,20 @@ settings = Dict(
                                  "ITensor" => "ITensorType.md",
                                  "MPS and MPO" => "MPSandMPO.md",
                                  "QN" => "QN.md",
+                                 "SiteType and op" => "SiteType.md",
                                  "DMRG" => [
                                             "DMRG.md",
                                             "ProjMPO.md",
-                                            "ProjMPOSum.md"
+                                            "ProjMPOSum.md",
+                                            "Observer.md",
+                                            "DMRGObserver.md"
                                            ],
                                  "AutoMPO" => "AutoMPO.md"
                                 ],
-             "Advanced usage guide" => "AdvancedUsageGuide.md",
+             "Advanced usage guide" => [
+                                        "Advanced usage guide" => "AdvancedUsageGuide.md",
+                                        "Multithreading" => "Multithreading.md"
+                                       ]
            ],
   :format => Documenter.HTML(assets = ["assets/favicon.ico"],
                              prettyurls = false),
