@@ -61,7 +61,7 @@ end
 
   @testset "norm MPO" begin
     A = randomMPO(sites)
-    Adag = ITensors.sim_linkinds(dag(A))
+    Adag = sim(linkinds, dag(A))
     A² = ITensor(1)
     for j = 1:N
       A² *= Adag[j] * A[j]
@@ -79,7 +79,7 @@ end
     for j in 1:N
       A[j] .*= j
     end
-    Adag = ITensors.sim_linkinds(dag(A))
+    Adag = sim(linkinds, dag(A))
     A² = ITensor(1)
     for j = 1:N
       A² *= Adag[j] * A[j]
@@ -259,6 +259,38 @@ end
         l_psi = contract(L, psi)
         @test inner(psi, k_psi + l_psi) ≈ inner(psi, M, psi) atol=5e-3
     end
+  end
+
+  @testset "+(::MPO, ::MPO)" begin
+    conserve_qns = true
+    s = siteinds("S=1/2", N; conserve_qns = conserve_qns)
+
+    ops = n -> isodd(n) ? "Sz" : "Id"
+    H₁ = MPO(s, ops)
+    H₂ = MPO(s, ops)
+
+    H = H₁ + H₂
+
+    @test inner(H, H) ≈ inner_add(H₁, H₂)
+    @test maxlinkdim(H) ≤ maxlinkdim(H₁) + maxlinkdim(H₂)
+
+    α₁ = 2.2
+    α₂ = 3.4 + 1.2im
+
+    H = α₁ * H₁ + H₂
+
+    @test inner(H, H) ≈ inner_add((α₁, H₁), H₂)
+    @test maxlinkdim(H) ≤ maxlinkdim(H₁) + maxlinkdim(H₂)
+
+    H = H₁ - H₂
+
+    @test inner(H, H) ≈ inner_add(H₁, (-1, H₂))
+    @test maxlinkdim(H) ≤ maxlinkdim(H₁) + maxlinkdim(H₂)
+
+    H = α₁ * H₁ - α₂ * H₂
+
+    @test inner(H, H) ≈ inner_add((α₁, H₁), (-α₂, H₂))
+    @test maxlinkdim(H) ≤ maxlinkdim(H₁) + maxlinkdim(H₂)
   end
 
   @testset "contract(::MPO, ::MPO)" begin
@@ -512,6 +544,67 @@ end
     @test tr(H) ≈ d^N
     @test tr(H2) ≈ d^N
   end
+
+  @testset "check_hascommonsiteinds checks in DMRG, inner, dot" begin
+    N = 4
+    s1 = siteinds("S=1/2", N)
+    s2 = siteinds("S=1/2", N)
+    psi1 = randomMPS(s1)
+    psi2 = randomMPS(s2)
+    H1 = MPO(AutoMPO() + ("Id", 1), s1)
+    H2 = MPO(AutoMPO() + ("Id", 1), s2)
+
+    @test_throws ErrorException inner(psi1, H2, psi1)
+    @test_throws ErrorException inner(psi1, H2, psi2; make_inds_match = false)
+
+    sweeps = Sweeps(1)
+    maxdim!(sweeps, 10)
+
+    @test_throws ErrorException dmrg(H2, psi1, sweeps)
+    @test_throws ErrorException dmrg(H1, [psi2], psi1, sweeps)
+    @test_throws ErrorException dmrg([H1, H2], psi1, sweeps)
+  end
+
+  @testset "MPO*MPO contraction with multiple site indices" begin
+    N = 8
+    s = siteinds("S=1/2", N)
+    a = AutoMPO()
+    for j in 1:N-1
+      a .+= 0.5, "S+", j, "S-", j+1
+      a .+= 0.5, "S-", j, "S+", j+1
+      a .+=      "Sz", j, "Sz", j+1
+    end
+    H = MPO(a, s)
+    # Create MPO/MPS with pairs of sites merged
+    H2 = MPO([H[b] * H[b+1] for b in 1:2:N])
+    @test @disable_warn_order prod(H) ≈ prod(H2)
+    HH = H' * H
+    H2H2 = H2' * H2
+    @test @disable_warn_order prod(HH) ≈ prod(H2H2)
+  end
+
+  @testset "MPO*MPO contraction with multiple and combined site indices" begin
+    N = 8
+    s = siteinds("S=1/2", N)
+    a = AutoMPO()
+    for j in 1:N-1
+      a .+= 0.5, "S+", j, "S-", j+1
+      a .+= 0.5, "S-", j, "S+", j+1
+      a .+=      "Sz", j, "Sz", j+1
+    end
+    H = MPO(a, s)
+    HH = setprime(H' * H, 1; plev = 2)
+
+    # Create MPO/MPS with pairs of sites merged
+    H2 = MPO([H[b] * H[b+1] for b in 1:2:N])
+    @test @disable_warn_order prod(H) ≈ prod(H2)
+    s = siteinds(H2; plev = 1)
+    C = combiner.(s; tags = "X")
+    H2 .*= C
+    H2H2 = prime(H2; tags = !ts"X") * dag(H2)
+    @test @disable_warn_order prod(HH) ≈ prod(H2H2)
+  end
+
 
 end
 

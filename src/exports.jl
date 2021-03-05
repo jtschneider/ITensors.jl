@@ -9,10 +9,17 @@ export
 
 # NDTensors module
   # Types
+  Block,
   Spectrum,
+  # Methods
   eigs,
   entropy,
   truncerror,
+  # Deprecated
+  addblock!,
+
+# ITensors.jl
+  index_id_rng,
 
 # argsdict/argsdict.jl
   argsdict,
@@ -25,10 +32,9 @@ export
   svd,
 
 # global_variables.jl
-  disable_warn_order!,
-  get_warn_order,
-  set_warn_order!,
-  reset_warn_order!,
+  # Methods
+
+  # Macros
   @disable_warn_order,
   @reset_warn_order,
   @set_warn_order,
@@ -57,9 +63,11 @@ export
   replacetags!,
   setdir,
   setprime,
+  setspace,
   settags,
   sim,
   space,
+  splitblocks,
   tags,
   val,
 
@@ -84,6 +92,7 @@ export
   pushfirst,
   replaceind,
   replaceinds,
+  replaceprime,
   swapinds,
   setindex,
   swapind,
@@ -96,7 +105,6 @@ export
   ITensor,
   # Methods
   ⊙,
-  addblock!,
   addtags!,
   apply,
   array,
@@ -112,6 +120,7 @@ export
   δ,
   diagITensor,
   dot,
+  eachnzblock,
   firstind,
   filterinds,
   hadamard_product,
@@ -121,6 +130,7 @@ export
   hassameinds,
   ind,
   inds,
+  insertblock!,
   itensor,
   mul!,
   matrix,
@@ -149,7 +159,6 @@ export
   scale!,
   scalar,
   setelt,
-  setwarnorder!,
   store,
   setprime!,
   swapprime!,
@@ -174,15 +183,19 @@ export
 # tagset.jl
   # Types
   TagSet,
+  # Macros
+  @ts_str,
   # Methods
   addtags,
   hastags,
-  @ts_str,
 
 # mps/dmrg.jl
   dmrg,
 
 # mps/abstractmps.jl
+  # Macros
+  @preserve_ortho,
+  # Methods
   add,
   contract,
   common_siteind,
@@ -199,6 +212,7 @@ export
   lognorm,
   movesite,
   movesites,
+  ortho_lims,
   siteinds,
 
 # mps/mpo.jl
@@ -210,6 +224,7 @@ export
   orthogonalize,
   orthogonalize!,
   randomMPO,
+  truncate,
   truncate!,
   unique_siteind,
   unique_siteinds,
@@ -242,6 +257,7 @@ export
   # Types
   AbstractObserver,
   DMRGObserver,
+  DMRGMeasurement,
   NoObserver,
   # Methods
   checkdone!,

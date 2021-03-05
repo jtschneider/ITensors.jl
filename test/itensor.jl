@@ -3,6 +3,9 @@ using Test
 using Combinatorics: permutations
 import Random: seed!
 
+# Enable debug checking for these tests
+ITensors.enable_debug_checks()
+
 seed!(12345)
 
 digits(::Type{T},x...) where {T} = T(sum([x[length(x)-k+1]*10^(k-1) for k=1:length(x)]))
@@ -44,6 +47,19 @@ digits(::Type{T},x...) where {T} = T(sum([x[length(x)-k+1]*10^(k-1) for k=1:leng
     b = Index(3)
     A = randomITensor(a, b)
     @test A[end, end] == A[a => 2, b => 3]
+    @test A[2, end] == A[a => 2, b => 3]
+    @test A[1, end] == A[a => 1, b => 3]
+    @test A[end, 2] == A[a => 2, b => 2]
+    @test A[a => end, b => end] == A[a => 2, b => 3]
+    @test A[a => 2, b => end] == A[a => 2, b => 3]
+    @test A[a => 1, b => end] == A[a => 1, b => 3]
+    @test A[a => end, b => 3] == A[a => 2, b => 3]
+    @test A[a => end, b => 2] == A[a => 2, b => 2]
+    @test A[b => end, a => end] == A[a => 2, b => 3]
+    @test A[b => 2, a => end] == A[a => 2, b => 2]
+    @test A[b => 1, a => end] == A[a => 2, b => 1]
+    @test A[b => end, a => 2] == A[a => 2, b => 3]
+    @test A[b => end, a => 1] == A[a => 1, b => 3]
   end
 
   @testset "Random" begin
@@ -894,21 +910,24 @@ end
       @test_throws ErrorException svd(A, j,l; alg = "bad_alg")
     end
 
-    @testset "Test SVD of a DenseTensor internally" begin
-      Lis = commoninds(A,IndexSet(j,l))
-      Ris = uniqueinds(A,Lis)
-      Lpos,Rpos = NDTensors.getperms(inds(A),Lis,Ris)
-      Ut,St,Vt,spec = svd(NDTensors.tensor(A), Lpos, Rpos)
-      U = itensor(Ut)
-      S = itensor(St)
-      V = itensor(Vt)
-      u = commonind(U, S)
-      v = commonind(V, S)
-      @test store(S) isa NDTensors.Diag{Float64,Vector{Float64}}
-      @test A≈U*S*V
-      @test U*dag(prime(U,u))≈δ(SType,u,u') atol=1e-13
-      @test V*dag(prime(V,v))≈δ(SType,v,v') atol=1e-13
-    end
+    #@testset "Test SVD of a DenseTensor internally" begin
+    #  Lis = commoninds(A,IndexSet(j,l))
+    #  Ris = uniqueinds(A,Lis)
+    #  Lpos,Rpos = NDTensors.getperms(inds(A),Lis,Ris)
+    #  # XXX this function isn't used anywhere in ITensors
+    #  # (it is no longer needed because of the combiner)
+    #  Ut,St,Vt,spec = svd(NDTensors.tensor(A), Lpos, Rpos)
+    #  U = itensor(Ut)
+    #  S = itensor(St)
+    #  V = itensor(Vt)
+    #  u = commonind(U, S)
+    #  v = commonind(V, S)
+    #  @test store(S) isa NDTensors.Diag{Float64,Vector{Float64}}
+    #  @test A≈U*S*V
+    #  @test U*dag(prime(U,u))≈δ(SType,u,u') atol=1e-13
+    #  @test V*dag(prime(V,v))≈δ(SType,v,v') atol=1e-13
+    #end
+
     @testset "Test SVD truncation" begin
         ii = Index(4)
         jj = Index(4)
@@ -923,6 +942,15 @@ end
       q = commonind(Q,R)
       @test A ≈ Q*R atol=1e-13
       @test Q*dag(prime(Q,q)) ≈ δ(SType,q,q') atol=1e-13
+    end
+
+    @testset "Regression test for QR decomposition of an ITensor with all indices on one side" begin
+      a = Index(2, "a")
+      b = Index(2, "b")
+      Vab = randomITensor(a, b)
+      Q, R = qr(Vab, (a, b))
+      @test hasinds(Q, (a, b))
+      @test Vab ≈ Q * R atol = 1e-13
     end
 
     @testset "Test polar decomposition of an ITensor" begin
@@ -1004,12 +1032,11 @@ end
 
     end # End factorize tests
 
-    @testset "Test error for empty inputs" begin
+    @testset "Test error for bad decomposition inputs" begin
       @test_throws ErrorException svd(A)
       @test_throws ErrorException svd(A, inds(A))
       @test_throws ErrorException eigen(A, inds(A), inds(A))
-      @test_throws ErrorException factorize(A)
-      @test_throws ErrorException factorize(A, inds(A))
+      #@test_throws ErrorException factorize(A)
     end
 
   end # End ITensor factorization testset
@@ -1160,5 +1187,8 @@ end
 end
 
 end # End Dense ITensor basic functionality
+
+# Disable debug checking once tests are completed
+ITensors.disable_debug_checks()
 
 nothing

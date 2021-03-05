@@ -16,10 +16,27 @@ using KrylovKit
 using LinearAlgebra
 using NDTensors
 using PackageCompiler
+using Pkg
 using Printf
 using Random
 using StaticArrays
 using TimerOutputs
+
+#####################################
+# Directory helper functions (useful for
+# running examples)
+#
+src_dir() = dirname(pathof(@__MODULE__))
+pkg_dir() = joinpath(src_dir(), "..")
+examples_dir() = joinpath(pkg_dir(), "examples")
+
+#####################################
+# Determine version and uuid of the package
+#
+_parse_project_toml(field::String) =
+  Pkg.TOML.parsefile(joinpath(pkg_dir(), "Project.toml"))[field]
+version() = VersionNumber(_parse_project_toml("version"))
+uuid() = Base.UUID(_parse_project_toml("uuid"))
 
 #####################################
 # Exports
@@ -67,6 +84,7 @@ include("qn/qnitensor.jl")
 # MPS/MPO
 #
 include("mps/abstractmps.jl")
+include("mps/deprecated.jl")
 include("mps/mps.jl")
 include("mps/mpo.jl")
 include("mps/sweeps.jl")
@@ -92,6 +110,11 @@ include("physics/fermions.jl")
 include("physics/autompo.jl")
 
 #####################################
+# Deprecations
+#
+include("deprecated.jl")
+
+#####################################
 # Argument parsing
 #
 include("argsdict/argsdict.jl")
@@ -106,6 +129,10 @@ include("packagecompile/compile.jl")
 # use only
 #
 include("developer_tools.jl")
+
+function __init__()
+  resize!(empty!(INDEX_ID_RNGs), Threads.nthreads()) # ensures that we didn't save a bad object
+end
 
 #####################################
 # Precompile certain functions
