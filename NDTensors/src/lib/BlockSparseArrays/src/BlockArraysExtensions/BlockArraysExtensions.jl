@@ -1,3 +1,4 @@
+using ArrayLayouts: ArrayLayouts, MemoryLayout, sub_materialize
 using BlockArrays:
   BlockArrays,
   AbstractBlockArray,
@@ -21,7 +22,7 @@ using BlockArrays:
 using Compat: allequal
 using Dictionaries: Dictionary, Indices
 using ..GradedAxes: blockedunitrange_getindices, to_blockindices
-using ..SparseArrayInterface: SparseArrayInterface, nstored, stored_indices
+using ..SparseArraysBase: SparseArraysBase, stored_length, stored_indices
 
 # A return type for `blocks(array)` when `array` isn't blocked.
 # Represents a vector with just that single block.
@@ -41,6 +42,10 @@ struct NonBlockedArray{T,N,Array<:AbstractArray{T,N}} <: AbstractArray{T,N}
 end
 Base.size(a::NonBlockedArray) = size(a.array)
 Base.getindex(a::NonBlockedArray{<:Any,N}, I::Vararg{Integer,N}) where {N} = a.array[I...]
+# Views of `NonBlockedArray`/`NonBlockedVector` are eager.
+# This fixes an issue in Julia 1.11 where reindexing defaults to using views.
+# TODO: Maybe reconsider this design, and allows views to work in slicing.
+Base.view(a::NonBlockedArray, I...) = a[I...]
 BlockArrays.blocks(a::NonBlockedArray) = SingleBlockView(a.array)
 const NonBlockedVector{T,Array} = NonBlockedArray{T,1,Array}
 NonBlockedVector(array::AbstractVector) = NonBlockedArray(array)
@@ -80,6 +85,9 @@ function Base.getindex(
 )
   return i
 end
+# Views of `BlockIndices` are eager.
+# This fixes an issue in Julia 1.11 where reindexing defaults to using views.
+Base.view(S::BlockIndices, i) = S[i]
 
 # Used in indexing such as:
 # ```julia
@@ -526,15 +534,29 @@ function Base.setindex!(a::BlockView{<:Any,N}, value, index::Vararg{Int,N}) wher
   return a
 end
 
-function SparseArrayInterface.nstored(a::BlockView)
+function SparseArraysBase.stored_length(a::BlockView)
   # TODO: Store whether or not the block is stored already as
   # a Bool in `BlockView`.
   I = CartesianIndex(Int.(a.block))
   # TODO: Use `block_stored_indices`.
   if I ∈ stored_indices(blocks(a.array))
-    return nstored(blocks(a.array)[I])
+    return stored_length(blocks(a.array)[I])
   end
   return 0
+end
+
+## # Allow more fine-grained control:
+## function ArrayLayouts.sub_materialize(layout, a::BlockView, ax)
+##   return blocks(a.array)[Int.(a.block)...]
+## end
+## function ArrayLayouts.sub_materialize(layout, a::BlockView)
+##   return sub_materialize(layout, a, axes(a))
+## end
+## function ArrayLayouts.sub_materialize(a::BlockView)
+##   return sub_materialize(MemoryLayout(a), a)
+## end
+function ArrayLayouts.sub_materialize(a::BlockView)
+  return blocks(a.array)[Int.(a.block)...]
 end
 
 function view!(a::AbstractArray{<:Any,N}, index::Block{N}) where {N}
@@ -559,7 +581,7 @@ function view!(a::AbstractArray{<:Any,N}, index::Vararg{BlockIndexRange{1},N}) w
 end
 
 using MacroTools: @capture
-using NDTensors.SparseArrayDOKs: is_getindex_expr
+using NDTensors.SparseArraysBase: is_getindex_expr
 macro view!(expr)
   if !is_getindex_expr(expr)
     error("@view must be used with getindex syntax (as `@view! a[i,j,...]`)")

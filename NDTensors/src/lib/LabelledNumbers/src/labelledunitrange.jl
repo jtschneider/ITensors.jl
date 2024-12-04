@@ -17,16 +17,6 @@ unlabel_type(::Type{<:LabelledUnitRange{Value}}) where {Value} = Value
 function Base.AbstractUnitRange{T}(a::LabelledUnitRange) where {T}
   return AbstractUnitRange{T}(unlabel(a))
 end
-# Used by `CartesianIndices` constructor.
-# TODO: Seems to only be needed for Julia v1.6, maybe remove once we
-# drop Julia v1.6 support.
-function Base.OrdinalRange{T1,T2}(a::LabelledUnitRange) where {T1,T2<:Integer}
-  return OrdinalRange{T1,T2}(unlabel(a))
-end
-# Fix ambiguity error in Julia v1.10.
-function Base.OrdinalRange{T,T}(a::LabelledUnitRange) where {T<:Integer}
-  return OrdinalRange{T,T}(unlabel(a))
-end
 
 # TODO: Is this a good definition?
 Base.unitrange(a::LabelledUnitRange) = a
@@ -61,4 +51,13 @@ function Base.iterate(a::LabelledUnitRange, i)
   i == last(a) && return nothing
   next = convert(eltype(a), labelled(i + step(a), label(a)))
   return (next, next)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", a::LabelledUnitRange)
+  println(io, typeof(a))
+  return print(io, label(a), " => ", unlabel(a))
+end
+
+function Base.show(io::IO, a::LabelledUnitRange)
+  return print(io, nameof(typeof(a)), " ", label(a), " => ", unlabel(a))
 end

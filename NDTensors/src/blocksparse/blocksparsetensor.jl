@@ -1,3 +1,6 @@
+using SparseArrays: nnz
+using .TypeParameterAccessors: similartype
+
 #
 # BlockSparseTensor (Tensor using BlockSparse storage)
 #
