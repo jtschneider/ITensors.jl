@@ -12,15 +12,22 @@ using BlockArrays:
   blockedrange,
   BlockIndexRange,
   blockfirsts,
-  blocklasts,
+  blockisequal,
   blocklength,
   blocklengths,
   findblock,
   findblockindex,
   mortar
 using Compat: allequal
+using FillArrays: Fill
 using ..LabelledNumbers:
-  LabelledNumbers, LabelledInteger, LabelledUnitRange, label, labelled, unlabel
+  LabelledNumbers,
+  LabelledInteger,
+  LabelledUnitRange,
+  label,
+  labelled,
+  labelled_isequal,
+  unlabel
 
 const AbstractGradedUnitRange{T<:LabelledInteger} = AbstractBlockedUnitRange{T}
 
@@ -35,6 +42,18 @@ const GradedOneTo{T<:LabelledInteger,BlockLasts<:Vector{T}} = BlockedOneTo{T,Blo
 # TODO: Delete this once we drop Julia 1.6 support.
 function Base.OrdinalRange{T,T}(a::GradedOneTo{<:LabelledInteger{T}}) where {T}
   return unlabel_blocks(a)
+end
+
+# == is just a range comparison that ignores labels. Need dedicated function to check equality.
+struct NoLabel end
+blocklabels(r::AbstractUnitRange) = Fill(NoLabel(), blocklength(r))
+
+function LabelledNumbers.labelled_isequal(a1::AbstractUnitRange, a2::AbstractUnitRange)
+  return blockisequal(a1, a2) && (blocklabels(a1) == blocklabels(a2))
+end
+
+function space_isequal(a1::AbstractUnitRange, a2::AbstractUnitRange)
+  return (isdual(a1) == isdual(a2)) && labelled_isequal(a1, a2)
 end
 
 # This is only needed in certain Julia versions below 1.10
